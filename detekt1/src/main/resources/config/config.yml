@@ -8,6 +8,8 @@ kode:
     active: true
   UseSurfaceModifier:
     active: true
+  UseOnStartEmit:
+    active: false
   ImmutableDataClass:
     active: true
     ignoreDescendantsOf: []

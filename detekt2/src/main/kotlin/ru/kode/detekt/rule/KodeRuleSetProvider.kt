@@ -15,6 +15,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> MapperFileNaming(config) },
         { config -> PayloadArgumentName(config) },
         { config -> UseSurfaceModifier(config) },
+        { config -> UseOnStartEmit(config) },
         { config -> ImmutableDataClass(config) },
         { config -> MissingTypeDeclaration(config) },
       ),

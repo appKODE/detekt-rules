@@ -6,6 +6,7 @@ object SharedRuleContracts {
     "MapperFileNaming",
     "PayloadArgumentName",
     "UseSurfaceModifier",
+    "UseOnStartEmit",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
   )
