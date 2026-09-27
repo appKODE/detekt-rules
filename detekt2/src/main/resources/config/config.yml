@@ -1,5 +1,7 @@
 kode:
   active: true
+  RouteWiringMethodNaming:
+    active: true
   MapperFileNaming:
     active: true
   ImmutableDataClass:

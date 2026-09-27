@@ -11,6 +11,7 @@ class KodeRuleSetProvider : RuleSetProvider {
     return RuleSet(
       ruleSetId,
       listOf(
+        { config -> RouteWiringMethodNaming(config) },
         { config -> MapperFileNaming(config) },
         { config -> ImmutableDataClass(config) },
         { config -> MissingTypeDeclaration(config) },
