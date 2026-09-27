@@ -1,5 +1,7 @@
 kode:
   active: true
+  MapperFileNaming:
+    active: true
   MissingTypeDeclaration:
     active: true
     ignoreInClassesDerivedFrom: []

@@ -11,6 +11,7 @@ class KodeRuleSetProvider : RuleSetProvider {
     return RuleSet(
       ruleSetId,
       listOf(
+        MapperFileNaming(config),
         MissingTypeDeclaration(config),
       ),
     )
