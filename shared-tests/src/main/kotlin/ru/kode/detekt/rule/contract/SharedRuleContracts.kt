@@ -5,6 +5,7 @@ object SharedRuleContracts {
     "RouteWiringMethodNaming",
     "MapperFileNaming",
     "PayloadArgumentName",
+    "UseSurfaceModifier",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
   )

@@ -14,6 +14,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         RouteWiringMethodNaming(config),
         MapperFileNaming(config),
         PayloadArgumentName(config),
+        UseSurfaceModifier(config),
         ImmutableDataClass(config),
         MissingTypeDeclaration(config),
       ),

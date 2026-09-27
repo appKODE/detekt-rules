@@ -6,6 +6,8 @@ kode:
     active: true
   PayloadArgumentName:
     active: true
+  UseSurfaceModifier:
+    active: true
   ImmutableDataClass:
     active: true
     ignoreDescendantsOf: []
