@@ -13,6 +13,7 @@ class KodeRuleSetProvider : RuleSetProvider {
       listOf(
         { config -> RouteWiringMethodNaming(config) },
         { config -> MapperFileNaming(config) },
+        { config -> PayloadArgumentName(config) },
         { config -> ImmutableDataClass(config) },
         { config -> MissingTypeDeclaration(config) },
       ),

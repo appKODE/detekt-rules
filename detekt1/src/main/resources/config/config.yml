@@ -4,6 +4,8 @@ kode:
     active: true
   MapperFileNaming:
     active: true
+  PayloadArgumentName:
+    active: true
   ImmutableDataClass:
     active: true
     ignoreDescendantsOf: []
