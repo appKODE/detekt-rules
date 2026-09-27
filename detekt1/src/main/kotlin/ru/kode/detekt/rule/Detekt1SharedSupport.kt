@@ -7,11 +7,15 @@ import io.gitlab.arturbosch.detekt.api.Entity
 import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.resolve.descriptorUtil.getSuperInterfaces
 import ru.kode.detekt.rule.shared.KodeDiagnostic
@@ -56,5 +60,10 @@ internal class BindingContextKodeSemantic(
       else -> null
     }
     return descriptor?.returnType?.toString()
+  }
+
+  override fun isMemberCallOnSubtypeOf(call: KtCallExpression, classFqName: String): Boolean {
+    val owner = call.getResolvedCall(bindingContext)?.resultingDescriptor?.containingDeclaration as? ClassDescriptor
+    return owner?.getAllSuperClassifiers().orEmpty().any { it.fqNameSafe.asString() == classFqName }
   }
 }

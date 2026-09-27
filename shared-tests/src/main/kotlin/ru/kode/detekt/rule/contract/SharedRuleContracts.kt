@@ -8,6 +8,7 @@ object SharedRuleContracts {
     "UseSurfaceModifier",
     "UseOnStartEmit",
     "ComponentFunctionCall",
+    "BlockingSqlDelightCall",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
   )

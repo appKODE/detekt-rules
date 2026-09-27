@@ -17,4 +17,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: BlockingSqlDelightCall") {
+    val error = shouldThrow<IllegalArgumentException> {
+      BlockingSqlDelightCall().lint("suspend fun run() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

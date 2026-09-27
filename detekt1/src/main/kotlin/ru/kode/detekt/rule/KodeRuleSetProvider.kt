@@ -17,6 +17,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         UseSurfaceModifier(config),
         UseOnStartEmit(config),
         ComponentFunctionCall(config),
+        BlockingSqlDelightCall(config),
         ImmutableDataClass(config),
         MissingTypeDeclaration(config),
       ),

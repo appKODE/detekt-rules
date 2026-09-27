@@ -5,8 +5,11 @@ import dev.detekt.api.Finding
 import dev.detekt.api.Rule
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
@@ -18,6 +21,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.types.Variance
@@ -35,6 +39,18 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
       .mapNotNull { it.symbol as? KaClassSymbol }
       .filter { it.classKind == KaClassKind.INTERFACE }
       .mapNotNullTo(mutableSetOf()) { it.name?.asString() }
+  }
+
+  override fun isMemberCallOnSubtypeOf(call: KtCallExpression, classFqName: String): Boolean = analyze(call) {
+    val functionCall = call.resolveToCall()?.successfulFunctionCallOrNull() ?: return@analyze false
+    val applied = functionCall.partiallyAppliedSymbol
+    val function = applied.symbol
+    val owner = if (function is KaConstructorSymbol) {
+      function.returnType
+    } else {
+      applied.dispatchReceiver?.type ?: return@analyze false
+    }
+    (owner.allSupertypes + owner).any { (it as? KaClassType)?.classId?.asSingleFqName()?.asString() == classFqName }
   }
 
   override fun renderedType(declaration: KtCallableDeclaration): String? = analyze(declaration) {

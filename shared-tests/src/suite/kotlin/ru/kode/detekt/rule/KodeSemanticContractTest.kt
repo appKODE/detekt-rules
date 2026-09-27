@@ -5,9 +5,11 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.string.shouldStartWith
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
+import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import ru.kode.detekt.rule.shared.KodeSemantic
 
 /**
@@ -152,6 +154,38 @@ class KodeSemanticContractTest : ShouldSpec({
       "Probe" to setOf("Comparable", "Serializable"),
     )
   }
+
+  should("tell whether a call resolves to a member of a subtype of the given class") {
+    withKodeSemantic(environment, CALL_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>()
+        .associate {
+          it.getQualifiedExpressionForSelectorOrThis().text to
+            semantic.isMemberCallOnSubtypeOf(it, "calls.Transacter")
+        }
+    } shouldContainExactly mapOf(
+      "emptyList()" to false,
+      "UserQueries()" to true,
+      "block()" to false,
+      "q.byId(1)" to true,
+      "q.selectAll()" to true,
+      "q.transaction {}" to true,
+      "q.toString()" to true,
+      "TransacterImpl()" to true,
+      "UserQueries.create()" to false,
+      "q.ext()" to false,
+      "t.transaction {}" to true,
+      "a.byId(2)" to true,
+      "o.other()" to false,
+      "Other()" to false,
+      "topLevel()" to false,
+      "unknown()" to false,
+      "withContext { q.selectAll() }" to false,
+      "with(q) { byId(3) }" to false,
+      "byId(3)" to true,
+      "select()" to true,
+      "\"b\".compareTo(\"a\")" to false,
+    )
+  }
 })
 
 private val UNRESOLVED = setOf("pUnresolved", "pUnresolvedType", "pFunUnresolved")
@@ -263,5 +297,46 @@ private val FIXTURE =
       fun <R> pFunDnnExplicit(r: R & Any) = r
       fun pFunLocalClass() = run { class Local; Local() }
       companion object { val pCompanion = 1 }
+    }
+  """.trimIndent()
+
+// language=kotlin
+private val CALL_FIXTURE =
+  """
+    package calls
+
+    interface Transacter { fun transaction(body: () -> Unit) {} }
+    abstract class BaseQueries : Transacter { fun selectAll(): List<Int> = emptyList() }
+    class UserQueries : BaseQueries() {
+      fun byId(id: Int): Int = id
+      companion object { fun create(): UserQueries = UserQueries() }
+    }
+    class TransacterImpl : Transacter
+    class Other { fun other() {} }
+    fun Transacter.ext() {}
+    fun topLevel() {}
+    fun <T> withContext(block: () -> T): T = block()
+
+    abstract class Store : Transacter {
+      fun select() {}
+      fun probe() { select(); "b".compareTo("a") }
+    }
+
+    fun <T : Transacter> probe(q: UserQueries, t: T, a: Any, o: Other) {
+      q.byId(1)
+      q.selectAll()
+      q.transaction {}
+      q.toString()
+      TransacterImpl()
+      UserQueries.create()
+      q.ext()
+      t.transaction {}
+      if (a is UserQueries) a.byId(2)
+      o.other()
+      Other()
+      topLevel()
+      unknown()
+      withContext { q.selectAll() }
+      with(q) { byId(3) }
     }
   """.trimIndent()
