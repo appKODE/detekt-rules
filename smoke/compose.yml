@@ -1,0 +1,4 @@
+compose:
+  active: true
+  PublicComposablePreview:
+    active: true

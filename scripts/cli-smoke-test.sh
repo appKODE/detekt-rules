@@ -5,12 +5,17 @@
 #  - the 1.4.0 release jar reports the same on detekt-cli 1.23.8 and 1.22.0 for the rules it has (golden behaviour;
 #    skip with --no-golden). 1.4.0 is not on Maven Central and not committed here: set GOLDEN_JAR to a local copy of
 #    it (checked against GOLDEN_JAR_SHA256); the golden runs are skipped when it is unset (e.g. on GitHub CI)
+#  - each jar loads alongside detekt-rules-compose: no shared classes, both rule sets report
+# DETEKT1_JAR / DETEKT2_JAR run other jars (e.g. from ~/.m2) instead of the freshly built ones
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DETEKT1_CLI=1.23.8
 DETEKT1_OLDEST_CLI=1.22.0
 DETEKT2_CLI=$(sed -n 's/^detekt2 *= *"\(.*\)"/\1/p' gradle/libs.versions.toml)
+COMPOSE_VERSION=2.0.0
+DETEKT1_JAR=${DETEKT1_JAR:-detekt1/build/libs/detekt1.jar}
+DETEKT2_JAR=${DETEKT2_JAR:-detekt2/build/libs/detekt2.jar}
 GOLDEN_JAR_VERSION=1.4.0
 GOLDEN_JAR=${GOLDEN_JAR:-}
 GOLDEN_JAR_SHA256=cc5963354a871d7f2af301a5ccfdb5dfa894ae41cf9c1b786cc9eb0a45c11505
@@ -46,7 +51,7 @@ normalize() {
 run() { # <name> <cli jar> <plugin jar> [extra cli args...]
   local name=$1 cli=$2 plugin=$3; shift 3
   # exit code 2 = findings reported, which is what we want here
-  java -jar "$cli" --input smoke/sample --config smoke/all-rules.yml --disable-default-rulesets \
+  java -jar "$cli" --input "${INPUT:-smoke/sample}" --config "${CONFIG:-smoke/all-rules.yml}" --disable-default-rulesets \
     --plugins "$plugin" --classpath "$stdlib" --jvm-target 11 --report "$@" > "$OUT/$name.log" 2>&1 || [ $? -eq 2 ] \
     || { cat "$OUT/$name.log"; exit 1; }
 }
@@ -56,21 +61,39 @@ check() { # <name> <checkstyle xml> [expected findings file] [regex of findings 
   if diff -u "${3:-smoke/expected-findings.txt}" "$OUT/$1.findings"; then echo "OK   $1"; else echo "FAIL $1"; failed=1; fi
 }
 
+coexist() { # <name> <cli jar> <list separator> <jar> <compose jar> [extra cli args...]: both rule sets on one run
+  local name=$1 cli=$2 sep=$3 jar=$4 compose=$5; shift 5
+  local shared
+  shared=$(comm -12 <(unzip -Z1 "$jar" | grep '\.class$' | sort) <(unzip -Z1 "$compose" | grep '\.class$' | sort))
+  if [ -n "$shared" ]; then echo "FAIL $name: classes in both jars: $shared"; failed=1; return; fi
+  INPUT="smoke/sample${sep}smoke/compose" CONFIG="smoke/all-rules.yml${sep}smoke/compose.yml" \
+    run "$name" "$cli" "$jar$sep$compose" "$@"
+  check "$name" "$OUT/$name.xml" "$OUT/coexist-expected.txt"
+}
+
 ./gradlew -q :detekt1:jar :detekt2:jar
 stdlib=$(fetch org/jetbrains/kotlin/kotlin-stdlib/2.0.21/kotlin-stdlib-2.0.21.jar)
 cli1=$(fetch "io/gitlab/arturbosch/detekt/detekt-cli/$DETEKT1_CLI/detekt-cli-$DETEKT1_CLI-all.jar")
 cli1_oldest=$(fetch "io/gitlab/arturbosch/detekt/detekt-cli/$DETEKT1_OLDEST_CLI/detekt-cli-$DETEKT1_OLDEST_CLI-all.jar")
 cli2=$(fetch "dev/detekt/detekt-cli/$DETEKT2_CLI/detekt-cli-$DETEKT2_CLI-all.jar")
+compose1=$(fetch "ru/kode/detekt-rules-compose/$COMPOSE_VERSION/detekt-rules-compose-$COMPOSE_VERSION.jar")
+compose2=$(fetch "ru/kode/detekt-rules-compose-detekt2/$COMPOSE_VERSION/detekt-rules-compose-detekt2-$COMPOSE_VERSION.jar")
+cat smoke/expected-findings.txt smoke/expected-compose-findings.txt | sort -t: -k1,1 -k2,2n -k3,3n > "$OUT/coexist-expected.txt"
 failed=0
 
-run detekt1 "$cli1" detekt1/build/libs/detekt1.jar "xml:$OUT/detekt1.xml"
+run detekt1 "$cli1" "$DETEKT1_JAR" "xml:$OUT/detekt1.xml"
 check "detekt1 (detekt-cli $DETEKT1_CLI)" "$OUT/detekt1.xml"
 
-run detekt1-oldest "$cli1_oldest" detekt1/build/libs/detekt1.jar "xml:$OUT/detekt1-oldest.xml"
+run detekt1-oldest "$cli1_oldest" "$DETEKT1_JAR" "xml:$OUT/detekt1-oldest.xml"
 check "detekt1 (detekt-cli $DETEKT1_OLDEST_CLI)" "$OUT/detekt1-oldest.xml"
 
-run detekt2 "$cli2" detekt2/build/libs/detekt2.jar "checkstyle:$OUT/detekt2.xml" --analysis-mode full
+run detekt2 "$cli2" "$DETEKT2_JAR" "checkstyle:$OUT/detekt2.xml" --analysis-mode full
 check "detekt2 (detekt-cli $DETEKT2_CLI)" "$OUT/detekt2.xml"
+
+coexist "detekt1 + compose $COMPOSE_VERSION (detekt-cli $DETEKT1_CLI)" "$cli1" , "$DETEKT1_JAR" "$compose1" \
+  "xml:$OUT/detekt1 + compose $COMPOSE_VERSION (detekt-cli $DETEKT1_CLI).xml"
+coexist "detekt2 + compose $COMPOSE_VERSION (detekt-cli $DETEKT2_CLI)" "$cli2" : "$DETEKT2_JAR" "$compose2" \
+  "checkstyle:$OUT/detekt2 + compose $COMPOSE_VERSION (detekt-cli $DETEKT2_CLI).xml" --analysis-mode full
 
 if [ "${1:-}" != "--no-golden" ] && [ ! -f "$GOLDEN_JAR" ]; then
   echo "SKIP golden $GOLDEN_JAR_VERSION: $GOLDEN_JAR not found (set GOLDEN_JAR)"
