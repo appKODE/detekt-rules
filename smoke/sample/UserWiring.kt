@@ -12,4 +12,10 @@ class UserWiring(private val coordinator: Coordinator) {
   fun navigateOnBack() {
     coordinator.handleEvent("back")
   }
+
+  class Args
+
+  fun openSettings() {
+    coordinator.handleEvent("settings")
+  }
 }

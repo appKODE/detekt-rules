@@ -2,10 +2,7 @@ package ru.kode.detekt.rule.shared.analyzer
 
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
-import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
-import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 
 /**
@@ -32,15 +29,6 @@ class RouteWiringMethodNamingAnalyzer {
     )
   }
 
-  /**
-   * Mirrors the 1.x visitor flag: it was set when entering a class (to "name contains Wiring") and cleared when
-   * leaving *any* class. So the function's innermost class must be a Wiring class, and no other class inside it may
-   * have been left before the check ran: none declared earlier in that class, and none local to the function (1.x
-   * checked a function after visiting its body).
-   */
-  private fun KtNamedFunction.isInsideWiringClass(): Boolean {
-    val owner = getStrictParentOfType<KtClass>() ?: return false
-    if (owner.name?.contains("Wiring") != true) return false
-    return owner.collectDescendantsOfType<KtClass> { it != owner }.none { it.startOffset < endOffset }
-  }
+  /** The function's innermost class (or enum entry) must be a Wiring class. */
+  private fun KtNamedFunction.isInsideWiringClass() = getStrictParentOfType<KtClass>()?.name?.contains("Wiring") == true
 }

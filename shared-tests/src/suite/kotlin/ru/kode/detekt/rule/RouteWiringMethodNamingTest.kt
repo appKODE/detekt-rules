@@ -135,9 +135,8 @@ class RouteWiringMethodNamingTest : ShouldSpec({
     RouteWiringMethodNaming().lint(code).single().shouldStartAt(code, "fun open")
   }
 
-  // 1.x quirk: the "inside a Wiring class" flag was cleared when leaving any class, so everything checked after a
-  // nested (or local) class inside the wiring class is skipped
-  should("skip functions checked after a nested or local class of a wiring class") {
+  // 1.x skipped these: its "inside a Wiring class" flag was cleared when leaving any class
+  should("check functions after a nested class, local class or enum entry of a wiring class") {
     val code = """
       class SomeWiring {
         fun first() { coordinator.handleEvent(Event.Open) }
@@ -158,6 +157,12 @@ class RouteWiringMethodNamingTest : ShouldSpec({
       }
     """.trimIndent()
 
-    RouteWiringMethodNaming().lint(code).single().shouldStartAt(code, "fun first")
+    val findings = RouteWiringMethodNaming().lint(code)
+
+    findings shouldHaveSize 4
+    findings[0].shouldStartAt(code, "fun first")
+    findings[1].shouldStartAt(code, "fun afterNested")
+    findings[2].shouldStartAt(code, "fun withLocalClass")
+    findings[3].shouldStartAt(code, "fun afterEntry")
   }
 })
