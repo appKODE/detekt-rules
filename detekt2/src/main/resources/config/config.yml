@@ -1,0 +1,7 @@
+kode:
+  active: true
+  MissingTypeDeclaration:
+    active: true
+    ignoreInClassesDerivedFrom: []
+    ignoreInInterfacesDerivedFrom: []
+    ignorePropertiesOfType: []
