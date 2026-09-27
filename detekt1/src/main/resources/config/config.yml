@@ -2,6 +2,9 @@ kode:
   active: true
   MapperFileNaming:
     active: true
+  ImmutableDataClass:
+    active: true
+    ignoreDescendantsOf: []
   MissingTypeDeclaration:
     active: true
     ignoreInClassesDerivedFrom: []

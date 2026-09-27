@@ -12,6 +12,7 @@ class KodeRuleSetProvider : RuleSetProvider {
       ruleSetId,
       listOf(
         MapperFileNaming(config),
+        ImmutableDataClass(config),
         MissingTypeDeclaration(config),
       ),
     )
