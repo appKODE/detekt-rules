@@ -1,5 +1,6 @@
 ComponentCalls.kt:7:17 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
 Database.kt:9:8 BlockingSqlDelightCall Database queries/transactions should be wrapped in &quot;withContext(Dispatchers.IO)&quot; to prevent blocking
+Database.kt:25:30 BlockingSqlDelightCall Database queries/transactions should be wrapped in &quot;withContext(Dispatchers.IO)&quot; to prevent blocking
 ExplicitTypes.kt:10:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;count: Int&apos;
 ExplicitTypes.kt:11:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;names: Box&lt;String&gt;&apos;
 ExplicitTypes.kt:12:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;handler: Function1&lt;Int, String&gt;&apos;

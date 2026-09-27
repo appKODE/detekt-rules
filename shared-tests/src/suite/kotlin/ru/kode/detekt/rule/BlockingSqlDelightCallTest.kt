@@ -172,29 +172,49 @@ class BlockingSqlDelightCallTest : ShouldSpec({
     finding.shouldStartAt(code, "select() };")
   }
 
-  should("not see a withContext outside of an enclosing local function") {
+  should("see a withContext enclosing a local function") {
     val code = "$PREAMBLE\nsuspend fun run(q: Queries) { withContext { fun local() { q.select() } } }"
 
-    lint(code) shouldHaveSize 1
+    lint(code).shouldBeEmpty()
   }
 
-  // quirks of 1.x kept for parity
-  should("report a nested suspend function's calls twice") {
+  should("see a withContext enclosing a nested suspend function") {
+    val code = "$PREAMBLE\nsuspend fun run(q: Queries) { withContext { suspend fun local() { q.select() } } }"
+
+    lint(code).shouldBeEmpty()
+  }
+
+  should("report a nested suspend function's calls once") {
     val code = "$PREAMBLE\nsuspend fun run(q: Queries) { suspend fun local() { q.select() } }"
 
-    lint(code) shouldHaveSize 2
+    lint(code).single().shouldStartAt(code, "select() } }")
   }
 
+  // a local function can only be called from the enclosing suspend function, where a blocking call blocks too
   should("check non-suspend local functions of a suspend function") {
     val code = "$PREAMBLE\nsuspend fun run(q: Queries) { fun local() { q.select() } }"
 
-    lint(code) shouldHaveSize 1
+    lint(code).single().shouldStartAt(code, "select() } }")
   }
 
-  should("report constructor calls and Any members called on Transacter subtypes") {
-    val code = "$PREAMBLE\nsuspend fun run(q: Queries) { QueriesImpl(); q.toString() }"
+  should("not report constructor calls and Any members called on Transacter subtypes") {
+    val code = "$PREAMBLE\nsuspend fun run(q: Queries) { QueriesImpl(); q.toString(); q.hashCode(); q.equals(q) }"
 
-    lint(code) shouldHaveSize 2
+    lint(code).shouldBeEmpty()
+  }
+
+  should("report an override of a member declared outside Transacter, like 1.x") {
+    val code = "$PREAMBLE\ninterface Dao { fun all(): Int }\n" +
+      "class DaoQueries : Transacter, Dao { override fun all() = 0 }\n" +
+      "suspend fun run(q: DaoQueries) { q.all() }"
+
+    lint(code).single().shouldStartAt(code, "all() }")
+  }
+
+  should("report calls that resolve with errors, like 1.x") {
+    val code = "$PREAMBLE\nsuspend fun run(q: Queries) { q.select(1) }"
+
+    lint(code).single().shouldStartAt(code, "select(1)")
   }
 })
 

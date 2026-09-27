@@ -5,7 +5,7 @@ import dev.detekt.api.Finding
 import dev.detekt.api.Rule
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
+import org.jetbrains.kotlin.analysis.api.resolution.singleFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
@@ -41,16 +41,17 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
       .mapNotNullTo(mutableSetOf()) { it.name?.asString() }
   }
 
-  override fun isMemberCallOnSubtypeOf(call: KtCallExpression, classFqName: String): Boolean = analyze(call) {
-    val functionCall = call.resolveToCall()?.successfulFunctionCallOrNull() ?: return@analyze false
-    val applied = functionCall.partiallyAppliedSymbol
+  override fun isMemberCallDeclaredInSubtypeOf(call: KtCallExpression, classFqName: String): Boolean = analyze(call) {
+    val applied = call.resolveToCall()?.singleFunctionCallOrNull()?.partiallyAppliedSymbol ?: return@analyze false
     val function = applied.symbol
-    val owner = if (function is KaConstructorSymbol) {
-      function.returnType
-    } else {
-      applied.dispatchReceiver?.type ?: return@analyze false
-    }
-    (owner.allSupertypes + owner).any { (it as? KaClassType)?.classId?.asSingleFqName()?.asString() == classFqName }
+    // detekt1 resolves an inherited member to a fake override owned by the receiver's class: use the receiver type
+    val owner = applied.dispatchReceiver?.type
+    if (function is KaConstructorSymbol || owner == null) return@analyze false
+    val original = function.fakeOverrideOriginal
+    (owner.allSupertypes + owner).any { (it as? KaClassType)?.classId?.asSingleFqName()?.asString() == classFqName } &&
+      (original.allOverriddenSymbols + original)
+        .filter { it.directlyOverriddenSymbols.none() }
+        .none { (it.containingDeclaration as? KaClassSymbol)?.classId?.asSingleFqName()?.asString() == "kotlin.Any" }
   }
 
   override fun renderedType(declaration: KtCallableDeclaration): String? = analyze(declaration) {

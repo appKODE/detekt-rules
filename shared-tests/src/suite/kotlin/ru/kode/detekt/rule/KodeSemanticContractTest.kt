@@ -155,22 +155,27 @@ class KodeSemanticContractTest : ShouldSpec({
     )
   }
 
-  should("tell whether a call resolves to a member of a subtype of the given class") {
+  should("tell whether a call resolves to a member function of the given class or a subtype, except Any members") {
     withKodeSemantic(environment, CALL_FIXTURE) { semantic, file ->
       file.collectDescendantsOfType<KtCallExpression>()
         .associate {
           it.getQualifiedExpressionForSelectorOrThis().text to
-            semantic.isMemberCallOnSubtypeOf(it, "calls.Transacter")
+            semantic.isMemberCallDeclaredInSubtypeOf(it, "calls.Transacter")
         }
     } shouldContainExactly mapOf(
       "emptyList()" to false,
-      "UserQueries()" to true,
+      "UserQueries()" to false,
       "block()" to false,
       "q.byId(1)" to true,
       "q.selectAll()" to true,
       "q.transaction {}" to true,
-      "q.toString()" to true,
-      "TransacterImpl()" to true,
+      "q.toString()" to false,
+      "q.equals(q)" to false,
+      "s.toString()" to false,
+      "s.select()" to true,
+      "q.byId(\"x\")" to true,
+      "q.missing()" to false,
+      "TransacterImpl()" to false,
       "UserQueries.create()" to false,
       "q.ext()" to false,
       "t.transaction {}" to true,
@@ -184,6 +189,9 @@ class KodeSemanticContractTest : ShouldSpec({
       "byId(3)" to true,
       "select()" to true,
       "\"b\".compareTo(\"a\")" to false,
+      "d.daoSelect()" to true,
+      "m.plain()" to true,
+      "m.hashCode()" to false,
     )
   }
 })
@@ -316,14 +324,24 @@ private val CALL_FIXTURE =
     fun Transacter.ext() {}
     fun topLevel() {}
     fun <T> withContext(block: () -> T): T = block()
+    interface UserDao { fun daoSelect(): Int }
+    class DaoQueries : Transacter, UserDao { override fun daoSelect() = 0 }
+    open class Plain { fun plain() {} }
+    class Mixed : Plain(), Transacter
 
     abstract class Store : Transacter {
+      override fun toString(): String = ""
       fun select() {}
       fun probe() { select(); "b".compareTo("a") }
     }
 
-    fun <T : Transacter> probe(q: UserQueries, t: T, a: Any, o: Other) {
+    fun <T : Transacter> probe(q: UserQueries, t: T, a: Any, o: Other, s: Store, d: DaoQueries, m: Mixed) {
       q.byId(1)
+      q.equals(q)
+      s.toString()
+      s.select()
+      q.byId("x")
+      q.missing()
       q.selectAll()
       q.transaction {}
       q.toString()
@@ -338,5 +356,8 @@ private val CALL_FIXTURE =
       unknown()
       withContext { q.selectAll() }
       with(q) { byId(3) }
+      d.daoSelect()
+      m.plain()
+      m.hashCode()
     }
   """.trimIndent()

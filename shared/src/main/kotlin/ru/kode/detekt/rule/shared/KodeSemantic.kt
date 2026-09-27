@@ -18,9 +18,9 @@ interface KodeSemantic {
   fun renderedType(declaration: KtCallableDeclaration): String?
 
   /**
-   * Whether [call] resolves to a member or constructor whose owner is the class [classFqName] or a subtype of it.
-   * The owner is the class the member was resolved on, like detekt1's containing declaration of the resolved call:
-   * the static type of the dispatch receiver (so inherited `Any` members count too), or the constructed class.
+   * Whether [call] resolves, even with errors, to a member function (not a constructor) of the class [classFqName]
+   * or a subtype of it, as seen from the receiver: inherited members and overrides count, like in 1.x, except
+   * members that ultimately override a `kotlin.Any` member (`toString()`, `equals()`...).
    */
-  fun isMemberCallOnSubtypeOf(call: KtCallExpression, classFqName: String): Boolean
+  fun isMemberCallDeclaredInSubtypeOf(call: KtCallExpression, classFqName: String): Boolean
 }

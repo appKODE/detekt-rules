@@ -19,3 +19,22 @@ class UserRepository(private val db: Transacter) {
     db.transaction {}
   }
 }
+
+class FixedSince140(private val db: Transacter) {
+  suspend fun nested() {
+    suspend fun inner() { db.transaction {} }
+  }
+
+  suspend fun localInContext() {
+    withContext(Unit) {
+      fun inner() { db.transaction {} }
+    }
+  }
+
+  suspend fun anyMembers() {
+    db.toString()
+    DbImpl()
+  }
+}
+
+class DbImpl : Transacter

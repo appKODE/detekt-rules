@@ -3,6 +3,7 @@ package ru.kode.detekt.rule
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.config
 import io.gitlab.arturbosch.detekt.api.internal.RequiresTypeResolution
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.resolve.BindingContext
 import ru.kode.detekt.rule.shared.analyzer.BlockingSqlDelightCallAnalyzer
@@ -15,12 +16,17 @@ class BlockingSqlDelightCall(
 
   private val sqlDelightPackage by config(defaultValue = sqlDelightPackage)
 
+  // bindingContext is set per file
+  private var analyzer: BlockingSqlDelightCallAnalyzer? = null
+
+  override fun visitKtFile(file: KtFile) {
+    analyzer = BlockingSqlDelightCallAnalyzer(sqlDelightPackage, BindingContextKodeSemantic(bindingContext))
+      .takeIf { bindingContext != BindingContext.EMPTY }
+    super.visitKtFile(file)
+  }
+
   override fun visitNamedFunction(function: KtNamedFunction) {
-    if (bindingContext != BindingContext.EMPTY) {
-      // bindingContext is set per file, so the analyzer cannot be cached
-      val analyzer = BlockingSqlDelightCallAnalyzer(this.sqlDelightPackage, BindingContextKodeSemantic(bindingContext))
-      reportDiagnostics(analyzer.analyze(function))
-    }
+    analyzer?.let { reportDiagnostics(it.analyze(function)) }
     super.visitNamedFunction(function)
   }
 }
