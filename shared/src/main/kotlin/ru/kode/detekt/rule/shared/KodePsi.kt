@@ -5,21 +5,6 @@ import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtUserType
 
-/** Visits selectors from the outermost to the innermost one, then the final receiver. */
-internal inline fun KtDotQualifiedExpression.forEachSubExpression(action: (KtExpression) -> Unit) {
-  var e: KtExpression? = this
-  while (e != null) {
-    val selector = (e as? KtDotQualifiedExpression)?.selectorExpression
-    if (selector != null) {
-      action(selector)
-      e = (e as KtDotQualifiedExpression).receiverExpression
-    } else {
-      action(e)
-      e = null
-    }
-  }
-}
-
 /**
  * The parts of a qualified chain owned by this link alone: its selector, plus the head receiver for the innermost
  * link. A visitor that visits every link of a chain sees each part exactly once.

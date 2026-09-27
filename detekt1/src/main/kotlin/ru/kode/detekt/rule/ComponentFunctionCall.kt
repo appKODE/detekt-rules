@@ -6,14 +6,13 @@ import ru.kode.detekt.rule.shared.analyzer.ComponentFunctionCallAnalyzer
 
 class ComponentFunctionCall(config: Config = Config.empty) : Detekt1SharedRule(
   config,
-  "Reports usage of \"comonentN\" functions",
+  "Reports usage of \"componentN\" functions",
 ) {
 
   private val analyzer = ComponentFunctionCallAnalyzer()
 
   override fun visitDotQualifiedExpression(expression: KtDotQualifiedExpression) {
-    val diagnostic = analyzer.analyze(expression)
-    // 1.x did not descend into a reported chain
-    if (diagnostic != null) reportDiagnostics(listOf(diagnostic)) else super.visitDotQualifiedExpression(expression)
+    reportDiagnostics(analyzer.analyze(expression))
+    super.visitDotQualifiedExpression(expression)
   }
 }

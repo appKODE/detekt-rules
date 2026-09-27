@@ -102,14 +102,19 @@ class ComponentFunctionCallTest : ShouldSpec({
     ComponentFunctionCall().lint(code).shouldBeEmpty()
   }
 
-  // 1.x quirk: the rule stops at the first match of a chain (outermost first) and does not descend into it
-  should("report only the outermost component call of a chain") {
+  // 1.x reported only the outermost one: it did not descend into a reported chain
+  should("report every component call of a chain and its lambdas") {
     val code = """
       fun main() {
         pair.component1().let { it.component2() }.component2()
       }
     """.trimIndent()
 
-    ComponentFunctionCall().lint(code).single().shouldStartAt(code, "component2()\n")
+    val findings = ComponentFunctionCall().lint(code).sortedBy { it.entity.location.source.column }
+
+    findings shouldHaveSize 3
+    findings[0].shouldStartAt(code, "component1()")
+    findings[1].shouldStartAt(code, "component2() }")
+    findings[2].shouldStartAt(code, "component2()\n")
   }
 })
