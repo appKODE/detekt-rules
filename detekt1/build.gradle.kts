@@ -23,7 +23,11 @@ dependencies {
   detekt1Stdlib(libs.detekt1.kotlin.stdlib)
 }
 
+// resolved when the test JVM starts, not at configuration time
+class Detekt1StdlibArgument(@get:Classpath val stdlib: FileCollection) : CommandLineArgumentProvider {
+  override fun asArguments() = listOf("-Ddetekt1.stdlib=${stdlib.singleFile.absolutePath}")
+}
+
 tasks.test {
-  val stdlib = detekt1Stdlib.singleFile.absolutePath
-  systemProperty("detekt1.stdlib", stdlib)
+  jvmArgumentProviders += Detekt1StdlibArgument(detekt1Stdlib)
 }
