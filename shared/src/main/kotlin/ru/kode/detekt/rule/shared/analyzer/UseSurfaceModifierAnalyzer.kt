@@ -34,33 +34,40 @@ import ru.kode.detekt.rule.shared.hasAnnotation
  */
 class UseSurfaceModifierAnalyzer {
   /**
-   * Checks the whole body of a `@Composable` function, nested functions included. As in 1.x, the caller must not
-   * visit nested functions separately, and only the outermost `Modifier`/`modifier` chain of an expression is
-   * checked.
+   * Checks every `Modifier`/`modifier` chain of a `@Composable` function, chains nested in another chain and
+   * non-composable local functions included. Nested composables are left to the caller, which visits every function.
    */
   fun analyze(function: KtNamedFunction): List<KodeDiagnostic> {
     if (!function.hasAnnotation("Composable")) return emptyList()
     val diagnostics = mutableListOf<KodeDiagnostic>()
     function.bodyExpression?.accept(
       object : KtTreeVisitorVoid() {
+        override fun visitNamedFunction(nested: KtNamedFunction) {
+          if (!nested.hasAnnotation("Composable")) super.visitNamedFunction(nested)
+        }
+
         override fun visitDotQualifiedExpression(expression: KtDotQualifiedExpression) {
-          if (!expression.text.startsWith("Modifier") && !expression.text.startsWith("modifier")) {
-            super.visitDotQualifiedExpression(expression)
-            return
+          if (expression.isModifierChain()) {
+            val modifiers = expression.splitToExpressions().drop(1) // drop "Modifier." or "modifier."
+            val combined = modifiers.any { it.isCallTo("clickable") || it.isCallTo("clip") || it.isCallTo("shadow") }
+            if (modifiers.any { it.isBackgroundWithShape() } && combined) {
+              diagnostics += KodeDiagnostic(
+                "Use \"Modifier.surface()\" instead of combining shaped background with clickable/clip/shadow",
+                expression,
+              )
+            }
           }
-          val modifiers = expression.splitToExpressions().drop(1) // drop "Modifier." or "modifier."
-          val combined = modifiers.any { it.isCallTo("clickable") || it.isCallTo("clip") || it.isCallTo("shadow") }
-          if (modifiers.any { it.isBackgroundWithShape() } && combined) {
-            diagnostics += KodeDiagnostic(
-              "Use \"Modifier.surface()\" instead of combining shaped background with clickable/clip/shadow",
-              expression,
-            )
-          }
+          super.visitDotQualifiedExpression(expression)
         }
       },
     )
     return diagnostics
   }
+
+  // the whole chain only, not its inner links
+  private fun KtDotQualifiedExpression.isModifierChain(): Boolean =
+    (parent as? KtDotQualifiedExpression)?.receiverExpression != this &&
+      (text.startsWith("Modifier") || text.startsWith("modifier"))
 
   private fun KtExpression.isCallTo(name: String): Boolean =
     this is KtCallExpression && getCallNameExpression()?.text == name

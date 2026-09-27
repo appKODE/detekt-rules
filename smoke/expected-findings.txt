@@ -16,7 +16,8 @@ Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too ge
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:18:29 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 State.kt:7:1 ImmutableDataClass Data class &quot;ScreenState&quot; is missing @Immutable annotation
-Surface.kt:15:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 Surface.kt:16:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
+Surface.kt:17:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
+Surface.kt:24:19 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 UserWiring.kt:8:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class
 UserWiring.kt:18:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class

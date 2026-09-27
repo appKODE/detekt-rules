@@ -132,26 +132,34 @@ class UseSurfaceModifierTest : ShouldSpec({
     UseSurfaceModifier().lint(code) shouldHaveSize 2
   }
 
-  // 1.x quirks: nested functions are checked only as part of an enclosing composable (composable or not), and
-  // only the outermost Modifier chain of an expression is checked
-  should("check nested functions only through an enclosing composable, and only outermost chains") {
+  // 1.x skipped the chains nested in another chain and the composables nested in a non-composable function
+  should("check nested chains and nested functions, each chain once") {
     val code = """
       @Composable
       fun Outer() {
-        fun helper() = Modifier.background(color = Color.Red, shape = shape).clip(shape)
-        Box(modifier = Modifier.then(Modifier.background(color = Color.Red, shape = shape).clip(shape)))
+        fun helper() = Modifier.background(color = Color.Red, shape = helperShape).clip(helperShape)
+        Box(modifier = Modifier.then(Modifier.background(color = Color.Red, shape = innerShape).clip(innerShape)))
+
+        @Composable
+        fun NestedComposable() {
+          Box(modifier = Modifier.shadow(1.dp).background(color = Color.Red, shape = nestedShape))
+        }
       }
 
       fun notComposable() {
         @Composable
         fun Inner() {
-          Box(modifier = Modifier.background(color = Color.Red, shape = shape).clip(shape))
+          Box(modifier = Modifier.clickable {}.background(color = Color.Red, shape = localShape))
         }
       }
     """.trimIndent()
 
-    UseSurfaceModifier().lint(
-      code,
-    ).single().shouldStartAt(code, "Modifier.background(color = Color.Red, shape = shape).clip(shape)\n")
+    val findings = UseSurfaceModifier().lint(code).sortedBy { it.entity.location.source.line }
+
+    findings shouldHaveSize 4
+    findings[0].shouldStartAt(code, "Modifier.background(color = Color.Red, shape = helperShape)")
+    findings[1].shouldStartAt(code, "Modifier.background(color = Color.Red, shape = innerShape)")
+    findings[2].shouldStartAt(code, "Modifier.shadow")
+    findings[3].shouldStartAt(code, "Modifier.clickable")
   }
 })

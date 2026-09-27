@@ -13,7 +13,7 @@ class UseSurfaceModifier(config: Config = Config.empty) : Rule(
   private val analyzer = UseSurfaceModifierAnalyzer()
 
   override fun visitNamedFunction(function: KtNamedFunction) {
-    // no super call: the analyzer covers nested functions of a composable, others are skipped, like 1.x did
     reportDiagnostics(analyzer.analyze(function))
+    super.visitNamedFunction(function)
   }
 }
