@@ -7,6 +7,7 @@ object SharedRuleContracts {
     "PayloadArgumentName",
     "UseSurfaceModifier",
     "UseOnStartEmit",
+    "ComponentFunctionCall",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
   )

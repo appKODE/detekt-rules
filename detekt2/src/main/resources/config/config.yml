@@ -10,6 +10,8 @@ kode:
     active: true
   UseOnStartEmit:
     active: false
+  ComponentFunctionCall:
+    active: false
   ImmutableDataClass:
     active: true
     ignoreDescendantsOf: []
