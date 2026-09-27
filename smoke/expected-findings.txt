@@ -7,6 +7,9 @@ ExplicitTypes.kt:12:3 MissingTypeDeclaration Missing explicit type declaration f
 ExplicitTypes.kt:17:3 MissingTypeDeclaration Missing explicit type declaration for public function &apos;titles: Box&lt;String?&gt;&apos;
 FeatureMapper.kt:1:1 MapperFileNaming File with mappers should have a name ending with &quot;Mappers&quot;
 Flows.kt:13:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
+Flows.kt:15:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
+Flows.kt:15:49 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
+Flows.kt:15:71 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:18:29 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead

@@ -87,16 +87,19 @@ class UseOnStartEmitTest : ShouldSpec({
     UseOnStartEmit().lint(code).shouldBeEmpty()
   }
 
-  // 1.x quirk: the rule stops at the first offending call of a chain and does not descend into it
-  should("report only the outermost offending onStart of a chain") {
+  // 1.x reported only the outermost one: it did not descend into a reported chain
+  should("report every offending onStart of a chain and its lambdas") {
     val code = """
       fun main() {
         flowOf(1).onStart { emit(0) }.map { flowOf(2).onStart { emit(1) } }.onStart { emit(-1) }
       }
     """.trimIndent()
 
-    val finding = UseOnStartEmit().lint(code).single()
+    val findings = UseOnStartEmit().lint(code).sortedBy { it.entity.location.source.column }
 
-    finding.shouldStartAt(code, "onStart { emit(-1) }")
+    findings shouldHaveSize 3
+    findings[0].shouldStartAt(code, "onStart { emit(0) }")
+    findings[1].shouldStartAt(code, "onStart { emit(1) }")
+    findings[2].shouldStartAt(code, "onStart { emit(-1) }")
   }
 })

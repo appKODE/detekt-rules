@@ -12,4 +12,5 @@ fun <T> Flow<T>.onStart(action: suspend FlowCollector<T>.() -> Unit): Flow<T> = 
 fun flows() {
   flowOf(1).onStart { emit(0) }
   flowOf(1).onStart { println() }
+  flowOf(1).onStart { emit(0) }.let { flowOf(2).onStart { emit(1) } }.onStart { emit(2) }
 }

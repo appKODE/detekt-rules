@@ -23,6 +23,7 @@ GOLDEN_CHANGED+='|^Payload\.kt:18:29 PayloadArgumentName ' # reported twice by 1
 GOLDEN_CHANGED+='|^Database\.kt:25:30 BlockingSqlDelightCall ' # reported twice by 1.4.0 (nested suspend function)
 GOLDEN_CHANGED+='|^Database\.kt:(30:24|35:8|36:5) BlockingSqlDelightCall ' # 1.4.0: local fun in withContext, Any member, ctor
 GOLDEN_CHANGED+='|^UserWiring\.kt:18:3 RouteWiringMethodNaming ' # 1.4.0 skips methods after a nested class
+GOLDEN_CHANGED+='|^Flows\.kt:15:(13|49) UseOnStartEmit ' # 1.4.0 reports only the outermost match of a chain
 MAVEN=https://repo1.maven.org/maven2
 OUT=build/smoke
 mkdir -p "$OUT"
