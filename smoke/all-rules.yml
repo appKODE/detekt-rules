@@ -16,7 +16,7 @@ kode:
     active: true
   ImmutableDataClass:
     active: true
-    ignoreDescendantsOf: [ "FlowEvent" ]
+    ignoreDescendantsOf: [ "FlowEvent", "sample.ui.QualifiedEvent" ]
   MissingTypeDeclaration:
     active: true
     ignoreInClassesDerivedFrom: [ "ViewIntents" ]

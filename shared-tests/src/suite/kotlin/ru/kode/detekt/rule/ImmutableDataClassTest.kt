@@ -122,7 +122,7 @@ class ImmutableDataClassTest : ShouldSpec({
     ImmutableDataClass(TestConfig("ignoreDescendantsOf" to listOf("OtherFlowEvent"))).lint(code).shouldBeEmpty()
   }
 
-  // PSI only: only supertypes written in the declaration count, by their short name
+  // no type resolution: only supertypes written in the declaration count
   should("ignore only direct descendants, by the short supertype name") {
     val code = """
       package ru.kode.example.feature.ui.screen
@@ -135,5 +135,40 @@ class ImmutableDataClassTest : ShouldSpec({
     val finding = ImmutableDataClass(ignoreDescendantsOf = listOf("FlowEvent")).lint(code).single()
 
     finding.message shouldBe "Data class \"Indirect\" is missing @Immutable annotation"
+  }
+
+  // 1.x matched the short name only, so a fully qualified entry never matched
+  should("ignore direct descendants by the fully qualified supertype name") {
+    val code = """
+      package ru.kode.example.feature.ui.screen
+      import ru.kode.FlowEvent
+      import ru.kode.Base as AliasedBase
+      data class Qualified(val foo: Int) : ru.kode.FlowEvent
+      data class Imported(val foo: Int) : FlowEvent<Int>
+      data class Aliased(val foo: Int) : AliasedBase.Nested
+      data class SamePackage(val foo: Int) : LocalEvent
+      data class OtherPackage(val foo: Int) : other.FlowEvent
+    """.trimIndent()
+
+    val finding = ImmutableDataClass(
+      ignoreDescendantsOf = listOf(
+        "ru.kode.FlowEvent",
+        "ru.kode.Base.Nested",
+        "ru.kode.example.feature.ui.screen.LocalEvent",
+      ),
+    ).lint(code).single()
+
+    finding.message shouldBe "Data class \"OtherPackage\" is missing @Immutable annotation"
+  }
+
+  // 1.x matched the real name of an import alias too
+  should("ignore direct descendants of an import alias by the real short supertype name") {
+    val code = """
+      package ru.kode.example.feature.ui.screen
+      import ext.FlowEvent as Ev
+      data class Aliased(val id: Int) : Ev
+    """.trimIndent()
+
+    ImmutableDataClass(ignoreDescendantsOf = listOf("FlowEvent")).lint(code).shouldBeEmpty()
   }
 })

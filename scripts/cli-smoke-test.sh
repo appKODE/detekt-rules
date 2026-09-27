@@ -25,6 +25,7 @@ GOLDEN_CHANGED+='|^Database\.kt:(30:24|35:8|36:5) BlockingSqlDelightCall ' # 1.4
 GOLDEN_CHANGED+='|^UserWiring\.kt:18:3 RouteWiringMethodNaming ' # 1.4.0 skips methods after a nested class
 GOLDEN_CHANGED+='|^Flows\.kt:15:(13|49) UseOnStartEmit ' # 1.4.0 reports only the outermost match of a chain
 GOLDEN_CHANGED+='|^Surface\.kt:24:19 UseSurfaceModifier ' # 1.4.0: chain nested in a chain, composable nested in a non-composable function
+GOLDEN_CHANGED+='|^State\.kt:16:1 ImmutableDataClass ' # 1.4.0 matches ignoreDescendantsOf by short name only
 MAVEN=https://repo1.maven.org/maven2
 OUT=build/smoke
 mkdir -p "$OUT"
