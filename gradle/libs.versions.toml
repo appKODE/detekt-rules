@@ -1,0 +1,36 @@
+[versions]
+kotlin = "2.4.20"
+detekt1 = "1.23.8"
+# the detekt 1 rules compile against this API: compiler PSI inlined from newer detekt (1.23.6+) breaks older 1.x at runtime
+detekt1Min = "1.23.0"
+# Kotlin that detekt 1.23.8 embeds: its K1 compiler cannot read newer stdlib metadata in tests
+detekt1Kotlin = "2.0.21"
+detekt2 = "2.0.0-alpha.6"
+koTest = "6.2.5"
+ktlint = "1.8.0"
+spotless = "8.10.3"
+dokka = "2.2.0"
+vanniktech = "0.37.0"
+kover = "0.9.9"
+
+[libraries]
+detekt1-api-min = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt1Min" }
+detekt1-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt1" }
+detekt1-kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "detekt1Kotlin" }
+detekt2-api = { module = "dev.detekt:detekt-api", version.ref = "detekt2" }
+detekt2-test = { module = "dev.detekt:detekt-test", version.ref = "detekt2" }
+detekt2-test-utils = { module = "dev.detekt:detekt-test-utils", version.ref = "detekt2" }
+detekt2-psi = { module = "dev.detekt:detekt-psi-utils", version.ref = "detekt2" }
+kotest-junit-runner = { module = "io.kotest:kotest-runner-junit5", version.ref = "koTest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "koTest" }
+kotest-property = { module = "io.kotest:kotest-property", version.ref = "koTest" }
+
+[bundles]
+koTest = [ "kotest-junit-runner", "kotest-assertions-core", "kotest-property" ]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+vanniktech-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

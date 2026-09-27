@@ -1,0 +1,14 @@
+ComponentCalls.kt:7:17 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
+Database.kt:9:8 BlockingSqlDelightCall Database queries/transactions should be wrapped in &quot;withContext(Dispatchers.IO)&quot; to prevent blocking
+ExplicitTypes.kt:10:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;count: Int&apos;
+ExplicitTypes.kt:11:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;names: Box&lt;String&gt;&apos;
+ExplicitTypes.kt:12:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;handler: Function1&lt;Int, String&gt;&apos;
+ExplicitTypes.kt:17:3 MissingTypeDeclaration Missing explicit type declaration for public function &apos;titles: Box&lt;String?&gt;&apos;
+FeatureMapper.kt:1:1 MapperFileNaming File with mappers should have a name ending with &quot;Mappers&quot;
+Flows.kt:13:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
+Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
+Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
+State.kt:7:1 ImmutableDataClass Data class &quot;ScreenState&quot; is missing @Immutable annotation
+Surface.kt:15:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
+Surface.kt:16:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
+UserWiring.kt:8:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class

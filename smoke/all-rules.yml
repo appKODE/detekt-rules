@@ -1,0 +1,24 @@
+kode:
+  active: true
+  RouteWiringMethodNaming:
+    active: true
+  MapperFileNaming:
+    active: true
+  PayloadArgumentName:
+    active: true
+  UseSurfaceModifier:
+    active: true
+  UseOnStartEmit:
+    active: true
+  ComponentFunctionCall:
+    active: true
+  BlockingSqlDelightCall:
+    active: true
+  ImmutableDataClass:
+    active: true
+    ignoreDescendantsOf: [ "FlowEvent" ]
+  MissingTypeDeclaration:
+    active: true
+    ignoreInClassesDerivedFrom: [ "ViewIntents" ]
+    ignoreInInterfacesDerivedFrom: []
+    ignorePropertiesOfType: [ "^Task\\d+<(?:[^<>]*|<[^<>]*>)*>$", "Result", "Unit", "ScreenTarget" ]
