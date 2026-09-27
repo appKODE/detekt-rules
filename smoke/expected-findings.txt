@@ -8,6 +8,7 @@ FeatureMapper.kt:1:1 MapperFileNaming File with mappers should have a name endin
 Flows.kt:13:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
+Payload.kt:18:29 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 State.kt:7:1 ImmutableDataClass Data class &quot;ScreenState&quot; is missing @Immutable annotation
 Surface.kt:15:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 Surface.kt:16:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow

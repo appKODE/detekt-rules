@@ -11,15 +11,17 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
 class PayloadArgumentNameAnalyzer {
   /**
    * Checks `transitionTo { state, payload -> }` and `action { _, _, payload -> }` calls anywhere inside the trailing
-   * lambda of an `onEach(...) { }` call. A nested `onEach` is checked again by the caller, as in 1.x.
+   * lambda of an `onEach(...) { }` call. A nested `onEach` is left to its own check, so each payload is reported
+   * once (1.x reported it once per enclosing `onEach`).
    */
   fun analyze(expression: KtCallExpression): List<KodeDiagnostic> {
-    if (expression.calleeExpression?.text != "onEach") return emptyList()
+    if (!expression.isCheckedOnEach()) return emptyList()
     val body = expression.lambdaArgumentAt(1)?.bodyExpression ?: return emptyList()
     val diagnostics = mutableListOf<KodeDiagnostic>()
     body.accept(
       object : KtTreeVisitorVoid() {
         override fun visitCallExpression(expression: KtCallExpression) {
+          if (expression.isCheckedOnEach()) return
           val payloadIndex = when (expression.calleeExpression?.text) {
             "transitionTo" -> 1
             "action" -> 2
@@ -38,6 +40,9 @@ class PayloadArgumentNameAnalyzer {
     )
     return diagnostics
   }
+
+  private fun KtCallExpression.isCheckedOnEach() =
+    calleeExpression?.text == "onEach" && lambdaArgumentAt(1)?.bodyExpression != null
 
   private fun KtCallExpression.lambdaArgumentAt(index: Int) =
     (valueArguments.getOrNull(index) as? KtLambdaArgument)?.getLambdaExpression()

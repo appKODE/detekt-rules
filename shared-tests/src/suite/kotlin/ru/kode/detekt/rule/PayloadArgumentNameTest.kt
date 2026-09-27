@@ -187,8 +187,8 @@ class PayloadArgumentNameTest : ShouldSpec({
     PayloadArgumentName().lint(code) shouldHaveSize 1
   }
 
-  // 1.x bug: the lambda of an onEach nested in another onEach is checked once per enclosing onEach
-  should("report a payload inside nested onEach calls once per onEach") {
+  // 1.x reported this payload once per enclosing onEach
+  should("report a payload inside nested onEach calls once") {
     val code = """
       fun buildMachine() {
         onEach(intent(ViewIntents::outer)) {
@@ -199,9 +199,6 @@ class PayloadArgumentNameTest : ShouldSpec({
       }
     """.trimIndent()
 
-    val findings = PayloadArgumentName().lint(code)
-
-    findings shouldHaveSize 2
-    findings.forEach { it.shouldStartAt(code, "payload") }
+    PayloadArgumentName().lint(code).single().shouldStartAt(code, "payload")
   }
 })

@@ -16,6 +16,10 @@ GOLDEN_JAR=${GOLDEN_JAR:-}
 GOLDEN_JAR_SHA256=cc5963354a871d7f2af301a5ccfdb5dfa894ae41cf9c1b786cc9eb0a45c11505
 # rules added after 1.4.0, absent from the golden jar
 GOLDEN_MISSING_RULES='ComponentFunctionCall|MissingTypeDeclaration'
+# findings that changed on purpose since 1.4.0 (behaviour fixes), as "File.kt:line:column RuleId"; left out of both
+# sides of the golden comparison
+GOLDEN_CHANGED='^$'
+GOLDEN_CHANGED+='|^Payload\.kt:18:29 PayloadArgumentName ' # reported twice by 1.4.0 (nested onEach)
 MAVEN=https://repo1.maven.org/maven2
 OUT=build/smoke
 mkdir -p "$OUT"
@@ -41,8 +45,8 @@ run() { # <name> <cli jar> <plugin jar> [extra cli args...]
     || { cat "$OUT/$name.log"; exit 1; }
 }
 
-check() { # <name> <checkstyle xml> [expected findings file]
-  normalize "$2" > "$OUT/$1.findings"
+check() { # <name> <checkstyle xml> [expected findings file] [regex of findings to leave out]
+  normalize "$2" | grep -vE "${4:-^$}" > "$OUT/$1.findings" || true
   if diff -u "${3:-smoke/expected-findings.txt}" "$OUT/$1.findings"; then echo "OK   $1"; else echo "FAIL $1"; failed=1; fi
 }
 
@@ -66,11 +70,12 @@ if [ "${1:-}" != "--no-golden" ] && [ ! -f "$GOLDEN_JAR" ]; then
   echo "SKIP golden $GOLDEN_JAR_VERSION: $GOLDEN_JAR not found (set GOLDEN_JAR)"
 elif [ "${1:-}" != "--no-golden" ]; then
   echo "$GOLDEN_JAR_SHA256  $GOLDEN_JAR" | shasum -a 256 -c --quiet
-  grep -vE ":[0-9]+:[0-9]+ ($GOLDEN_MISSING_RULES) " smoke/expected-findings.txt > "$OUT/golden-expected.txt" || true
+  grep -vE ":[0-9]+:[0-9]+ ($GOLDEN_MISSING_RULES) " smoke/expected-findings.txt | grep -vE "$GOLDEN_CHANGED" \
+    > "$OUT/golden-expected.txt" || true
   run golden "$cli1" "$GOLDEN_JAR" "xml:$OUT/golden.xml"
-  check "golden $GOLDEN_JAR_VERSION (detekt-cli $DETEKT1_CLI)" "$OUT/golden.xml" "$OUT/golden-expected.txt"
+  check "golden $GOLDEN_JAR_VERSION (detekt-cli $DETEKT1_CLI)" "$OUT/golden.xml" "$OUT/golden-expected.txt" "$GOLDEN_CHANGED"
   run golden-oldest "$cli1_oldest" "$GOLDEN_JAR" "xml:$OUT/golden-oldest.xml"
-  check "golden $GOLDEN_JAR_VERSION (detekt-cli $DETEKT1_OLDEST_CLI)" "$OUT/golden-oldest.xml" "$OUT/golden-expected.txt"
+  check "golden $GOLDEN_JAR_VERSION (detekt-cli $DETEKT1_OLDEST_CLI)" "$OUT/golden-oldest.xml" "$OUT/golden-expected.txt" "$GOLDEN_CHANGED"
 fi
 
 exit $failed

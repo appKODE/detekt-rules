@@ -11,3 +11,11 @@ fun reducers() {
     transitionTo { state, title -> state }
   }
 }
+
+fun nestedReducers() {
+  onEach(Unit) {
+    onEach(Unit) {
+      transitionTo { state, payload -> state }
+    }
+  }
+}
