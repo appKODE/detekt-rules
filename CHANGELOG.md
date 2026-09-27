@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 - unreleased
+## 2.0.0 - 2026-09-27
 
 First open-source release, published to Maven Central.
 
