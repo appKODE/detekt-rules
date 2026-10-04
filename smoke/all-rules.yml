@@ -26,3 +26,5 @@ kode:
     active: true
   ConstantsNotAtBottom:
     active: true
+  InconsistentWhenTypeCheck:
+    active: true

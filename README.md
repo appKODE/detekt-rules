@@ -55,6 +55,8 @@ kode:
     active: false
   ConstantsNotAtBottom:
     active: false
+  InconsistentWhenTypeCheck:
+    active: false
 ```
 
 # Rules
@@ -72,6 +74,7 @@ kode:
 | `MissingTypeDeclaration` | active | A public property without an explicit type, or a public non-`Unit` function without an explicit return type, in a class body | `ignoreInClassesDerivedFrom` (`[]`): skip classes with one of these (transitive) supertypes, by simple name; `ignoreInInterfacesDerivedFrom` (`[]`): skip classes that directly implement one of these interfaces, by simple name; `ignorePropertiesOfType` (`[]`): skip properties whose type matches one of these regular expressions |
 | `NullableValueClassProperty` | inactive | A `value class` whose property has a nullable type; make it non-null and use a nullable value class instead | — |
 | `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
+| `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified PascalCase name | — |
 
 # Type resolution
 

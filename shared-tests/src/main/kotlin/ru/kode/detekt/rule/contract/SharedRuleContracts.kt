@@ -13,5 +13,6 @@ object SharedRuleContracts {
     "MissingTypeDeclaration",
     "NullableValueClassProperty",
     "ConstantsNotAtBottom",
+    "InconsistentWhenTypeCheck",
   )
 }

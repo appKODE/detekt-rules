@@ -22,6 +22,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         MissingTypeDeclaration(config),
         NullableValueClassProperty(config),
         ConstantsNotAtBottom(config),
+        InconsistentWhenTypeCheck(config),
       ),
     )
   }
