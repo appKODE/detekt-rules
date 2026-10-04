@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.1.0 - 2026-10-05
+
+Nine new rules. All of them are inactive by default: enable the ones you need in your detekt config.
+
+* `NullableValueClassProperty`: a value class wrapping a nullable type
+* `ConstantsNotAtBottom`: `const val`s declared above other declarations of a file, or in a companion object that is
+  not the last declaration of its class
+* `InconsistentWhenTypeCheck`: a `when` mixing `is` checks with equality checks of objects
+* `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects
+* `UnusedLetResult`: a `let { }` call used as a statement
+* `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it
+* `CancellationExceptionNotRethrown`: a broad `catch` in a `suspend` function that swallows `CancellationException`.
+  On detekt 2 prefer the stock `SuspendFunSwallowedCancellation`
+* `PublicSuspendFunctionInReactiveModel`: a public `suspend` function of a reactive model (needs type resolution)
+* `UnhandledViewIntent`: view intents that the machine of a view model never handles (needs type resolution)
+
+Two related checks are not added, because detekt already ships them in its `style` rule set: `UseEmptyCounterpart`
+(`emptyList()` instead of `listOf()`) and `UnnecessaryLet`.
+
 ## 2.0.0 - 2026-09-27
 
 First open-source release, published to Maven Central.

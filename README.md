@@ -11,10 +11,10 @@ Pick the artifact that matches your detekt version:
 ```kotlin
 dependencies {
   // detekt 1.22.0 - 1.23.8
-  detektPlugins("ru.kode:detekt-rules:2.0.0")
+  detektPlugins("ru.kode:detekt-rules:2.1.0")
 
   // detekt 2.0.0-alpha.6
-  detektPlugins("ru.kode:detekt-rules-detekt2:2.0.0")
+  detektPlugins("ru.kode:detekt-rules-detekt2:2.1.0")
 }
 ```
 
