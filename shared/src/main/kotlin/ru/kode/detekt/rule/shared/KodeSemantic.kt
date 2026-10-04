@@ -3,6 +3,7 @@ package ru.kode.detekt.rule.shared
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 
 interface KodeSemantic {
   /** Simple names of the class itself plus all its transitive supertypes (classes and interfaces, incl. `Any`). */
@@ -23,4 +24,11 @@ interface KodeSemantic {
    * members that ultimately override a `kotlin.Any` member (`toString()`, `equals()`...).
    */
   fun isMemberCallDeclaredInSubtypeOf(call: KtCallExpression, classFqName: String): Boolean
+
+  /**
+   * The class [reference] refers to (`Intents` in `Intents::onClick`), when it is declared in the analyzed sources;
+   * null when the reference is unresolved, refers to anything else (an object, a property, a type alias...) or to
+   * a class of a library.
+   */
+  fun referencedClass(reference: KtNameReferenceExpression): KtClass?
 }

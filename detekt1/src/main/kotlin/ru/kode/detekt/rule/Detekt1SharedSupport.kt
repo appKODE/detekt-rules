@@ -12,9 +12,11 @@ import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
@@ -73,4 +75,8 @@ internal class BindingContextKodeSemantic(
         .filter { it.overriddenDescriptors.isEmpty() }
         .none { it.containingDeclaration.fqNameSafe.asString() == "kotlin.Any" }
   }
+
+  override fun referencedClass(reference: KtNameReferenceExpression): KtClass? =
+    (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
+      ?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
 }

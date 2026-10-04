@@ -7,7 +7,11 @@ import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.string.shouldStartWith
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
+import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -194,6 +198,29 @@ class KodeSemanticContractTest : ShouldSpec({
       "m.hashCode()" to false,
     )
   }
+
+  should("resolve a name reference to the source class it refers to") {
+    withKodeSemantic(environment, REFERENCE_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallableReferenceExpression>().associate { reference ->
+        val name = when (val receiver = reference.receiverExpression) {
+          is KtQualifiedExpression -> receiver.selectorExpression
+          null -> reference.callableReference
+          else -> receiver
+        } as KtNameReferenceExpression
+        (reference.parent as KtProperty).name!! to semantic.referencedClass(name)?.name
+      }
+    } shouldContainExactly mapOf(
+      "rClass" to "Intents",
+      "rNested" to "Nested",
+      "rQualified" to "Intents",
+      "rObject" to null,
+      "rAlias" to null,
+      "rProperty" to null,
+      "rInstance" to null,
+      "rLibrary" to null,
+      "rUnresolved" to null,
+    )
+  }
 })
 
 private val UNRESOLVED = setOf("pUnresolved", "pUnresolvedType", "pFunUnresolved")
@@ -360,4 +387,29 @@ private val CALL_FIXTURE =
       m.plain()
       m.hashCode()
     }
+  """.trimIndent()
+
+// language=kotlin
+private val REFERENCE_FIXTURE =
+  """
+    package references
+
+    class Intents {
+      val onClick = 1
+      class Nested { val onOpen = 2 }
+    }
+    object Holder { val value = 3 }
+    typealias Alias = Intents
+    val top = 4
+    val instance = Intents()
+
+    val rClass = Intents::onClick
+    val rNested = Intents.Nested::onOpen
+    val rQualified = references.Intents::onClick
+    val rObject = Holder::value
+    val rAlias = Alias::onClick
+    val rProperty = ::top
+    val rInstance = instance::onClick
+    val rLibrary = String::length
+    val rUnresolved = Missing::value
   """.trimIndent()

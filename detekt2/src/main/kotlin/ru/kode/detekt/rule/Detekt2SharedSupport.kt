@@ -21,9 +21,11 @@ import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.types.Variance
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -56,6 +58,12 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
 
   override fun renderedType(declaration: KtCallableDeclaration): String? = analyze(declaration) {
     render(declaration.returnType)
+  }
+
+  override fun referencedClass(reference: KtNameReferenceExpression): KtClass? = analyze(reference) {
+    // a library class can have a decompiled PSI: detekt1 has none for it
+    ((reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.psi as? KtClass)
+      ?.takeUnless { it.containingKtFile.isCompiled }
   }
 }
 
