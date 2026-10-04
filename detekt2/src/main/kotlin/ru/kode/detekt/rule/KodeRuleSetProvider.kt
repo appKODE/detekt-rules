@@ -24,6 +24,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> ConstantsNotAtBottom(config) },
         { config -> InconsistentWhenTypeCheck(config) },
         { config -> SealedClassCouldBeEnum(config) },
+        { config -> UnusedLetResult(config) },
       ),
     )
   }

@@ -59,6 +59,8 @@ kode:
     active: false
   SealedClassCouldBeEnum:
     active: false
+  UnusedLetResult:
+    active: false
 ```
 
 # Rules
@@ -78,6 +80,7 @@ kode:
 | `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
 | `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified PascalCase name | — |
 | `SealedClassCouldBeEnum` | inactive | A sealed class or interface without type parameters and without a superclass whose inheritors (at least two, searched in the same file) are all objects with no state of their own | — |
+| `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement). The last statement of a lambda is never reported | — |
 
 # Type resolution
 

@@ -15,5 +15,6 @@ object SharedRuleContracts {
     "ConstantsNotAtBottom",
     "InconsistentWhenTypeCheck",
     "SealedClassCouldBeEnum",
+    "UnusedLetResult",
   )
 }

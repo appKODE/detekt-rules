@@ -31,3 +31,5 @@ kode:
     active: false
   SealedClassCouldBeEnum:
     active: false
+  UnusedLetResult:
+    active: false
