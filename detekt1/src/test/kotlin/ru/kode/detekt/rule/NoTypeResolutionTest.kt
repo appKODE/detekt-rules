@@ -6,8 +6,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 
 /**
  * detekt1 lets `lint` run type-resolution rules with an empty BindingContext (detekt-core itself skips them when
- * there is no classpath). MissingTypeDeclaration and
- * BlockingSqlDelightCall must then report nothing, as 1.x did.
+ * there is no classpath). the type-resolved rules must then report nothing, as 1.x did.
  */
 class NoTypeResolutionTest : ShouldSpec({
   should("skip the check without type resolution: MissingTypeDeclaration") {
@@ -32,5 +31,17 @@ class NoTypeResolutionTest : ShouldSpec({
     """.trimIndent()
 
     BlockingSqlDelightCall().lint(code).shouldBeEmpty()
+  }
+
+  should("skip the check without type resolution: PublicSuspendFunctionInReactiveModel") {
+    val code = """
+      open class ReactiveModel
+
+      class ProfileModel : ReactiveModel() {
+        suspend fun load(): Int = 1
+      }
+    """.trimIndent()
+
+    PublicSuspendFunctionInReactiveModel().lint(code).shouldBeEmpty()
   }
 })

@@ -18,5 +18,6 @@ object SharedRuleContracts {
     "UnusedLetResult",
     "CoroutineScopeNotCancelled",
     "CancellationExceptionNotRethrown",
+    "PublicSuspendFunctionInReactiveModel",
   )
 }

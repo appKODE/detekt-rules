@@ -38,3 +38,6 @@ kode:
   CancellationExceptionNotRethrown:
     active: false
     rethrowFunctions: []
+  PublicSuspendFunctionInReactiveModel:
+    active: false
+    baseClasses: ['ReactiveModel']

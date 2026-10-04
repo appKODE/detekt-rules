@@ -25,4 +25,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: PublicSuspendFunctionInReactiveModel") {
+    val error = shouldThrow<IllegalArgumentException> {
+      PublicSuspendFunctionInReactiveModel().lint("class Model")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

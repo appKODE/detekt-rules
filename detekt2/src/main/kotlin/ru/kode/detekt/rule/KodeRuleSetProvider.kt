@@ -27,6 +27,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> UnusedLetResult(config) },
         { config -> CoroutineScopeNotCancelled(config) },
         { config -> CancellationExceptionNotRethrown(config) },
+        { config -> PublicSuspendFunctionInReactiveModel(config) },
       ),
     )
   }

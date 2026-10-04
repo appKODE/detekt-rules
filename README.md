@@ -66,6 +66,9 @@ kode:
   CancellationExceptionNotRethrown:
     active: false
     rethrowFunctions: []
+  PublicSuspendFunctionInReactiveModel:
+    active: false
+    baseClasses: ['ReactiveModel']
 ```
 
 # Rules
@@ -88,10 +91,11 @@ kode:
 | `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement). The last statement of a lambda is never reported | — |
 | `CoroutineScopeNotCancelled` | inactive | A class property initialized with `CoroutineScope(...)` or `MainScope()` when the class has no `cancel` call on it (`scope.cancel()`, `scope.coroutineContext.cancel()`, or `job.cancel()` for `CoroutineScope(job)`). Objects are skipped: they live as long as the process | — |
 | `CancellationExceptionNotRethrown` | inactive | In a `suspend` function, a `catch` of `Throwable`, `Exception`, `RuntimeException` or `IllegalStateException` that neither rethrows the caught exception nor calls `ensureActive()`, unless an earlier `catch (e: CancellationException)` rethrows. On detekt 2 prefer the stock `SuspendFunSwallowedCancellation`, which resolves types | `rethrowFunctions` (`[]`): names of functions whose call in the `catch` counts as a rethrow |
+| `PublicSuspendFunctionInReactiveModel` | inactive | A public, non-`override` `suspend` function declared in a class derived (directly or not) from one of `baseClasses`. Needs type resolution | `baseClasses` (`['ReactiveModel']`): simple names of the reactive model base classes |
 
 # Type resolution
 
-`BlockingSqlDelightCall` and `MissingTypeDeclaration` need type information; the other rules work on syntax only.
+`BlockingSqlDelightCall`, `MissingTypeDeclaration` and `PublicSuspendFunctionInReactiveModel` need type information; the other rules work on syntax only.
 
 - detekt 1: they only report in the [type resolution](https://detekt.dev/docs/gettingstarted/type-resolution)
   tasks (`detektMain`, `detektTest`, or `detekt-cli --classpath ...`). In a plain `detekt` task they report nothing.
