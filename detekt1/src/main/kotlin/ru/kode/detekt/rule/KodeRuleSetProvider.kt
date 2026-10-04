@@ -21,6 +21,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         ImmutableDataClass(config),
         MissingTypeDeclaration(config),
         NullableValueClassProperty(config),
+        ConstantsNotAtBottom(config),
       ),
     )
   }

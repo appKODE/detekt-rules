@@ -53,6 +53,8 @@ kode:
     ignorePropertiesOfType: []
   NullableValueClassProperty:
     active: false
+  ConstantsNotAtBottom:
+    active: false
 ```
 
 # Rules
@@ -69,6 +71,7 @@ kode:
 | `ImmutableDataClass` | active | A data class in a `ui` package (any package segment) without `@Immutable` | `ignoreDescendantsOf` (`[]`): skip data classes whose direct supertype has one of these short or fully qualified names |
 | `MissingTypeDeclaration` | active | A public property without an explicit type, or a public non-`Unit` function without an explicit return type, in a class body | `ignoreInClassesDerivedFrom` (`[]`): skip classes with one of these (transitive) supertypes, by simple name; `ignoreInInterfacesDerivedFrom` (`[]`): skip classes that directly implement one of these interfaces, by simple name; `ignorePropertiesOfType` (`[]`): skip properties whose type matches one of these regular expressions |
 | `NullableValueClassProperty` | inactive | A `value class` whose property has a nullable type; make it non-null and use a nullable value class instead | — |
+| `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
 
 # Type resolution
 

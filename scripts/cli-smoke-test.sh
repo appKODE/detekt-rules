@@ -20,7 +20,6 @@ GOLDEN_JAR_VERSION=1.4.0
 GOLDEN_JAR=${GOLDEN_JAR:-}
 GOLDEN_JAR_SHA256=cc5963354a871d7f2af301a5ccfdb5dfa894ae41cf9c1b786cc9eb0a45c11505
 # rules added after 1.4.0, absent from the golden jar
-GOLDEN_MISSING_RULES='ComponentFunctionCall|MissingTypeDeclaration|NullableValueClassProperty'
 # findings that changed on purpose since 1.4.0 (behaviour fixes), as "File.kt:line:column RuleId"; left out of both
 # sides of the golden comparison
 GOLDEN_CHANGED='^$'

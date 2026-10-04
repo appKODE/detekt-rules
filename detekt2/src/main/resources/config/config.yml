@@ -25,3 +25,5 @@ kode:
     ignorePropertiesOfType: []
   NullableValueClassProperty:
     active: false
+  ConstantsNotAtBottom:
+    active: false

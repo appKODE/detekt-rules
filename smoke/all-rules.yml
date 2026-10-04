@@ -24,3 +24,5 @@ kode:
     ignorePropertiesOfType: [ "^Task\\d+<(?:[^<>]*|<[^<>]*>)*>$", "Result", "Unit", "ScreenTarget" ]
   NullableValueClassProperty:
     active: true
+  ConstantsNotAtBottom:
+    active: true
