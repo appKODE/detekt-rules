@@ -17,5 +17,6 @@ object SharedRuleContracts {
     "SealedClassCouldBeEnum",
     "UnusedLetResult",
     "CoroutineScopeNotCancelled",
+    "CancellationExceptionNotRethrown",
   )
 }

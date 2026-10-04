@@ -34,3 +34,6 @@ kode:
     active: true
   CoroutineScopeNotCancelled:
     active: true
+  CancellationExceptionNotRethrown:
+    active: true
+    rethrowFunctions: ['rethrowCancellation']

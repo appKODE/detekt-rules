@@ -26,6 +26,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> SealedClassCouldBeEnum(config) },
         { config -> UnusedLetResult(config) },
         { config -> CoroutineScopeNotCancelled(config) },
+        { config -> CancellationExceptionNotRethrown(config) },
       ),
     )
   }
