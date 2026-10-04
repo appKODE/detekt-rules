@@ -23,6 +23,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         NullableValueClassProperty(config),
         ConstantsNotAtBottom(config),
         InconsistentWhenTypeCheck(config),
+        SealedClassCouldBeEnum(config),
       ),
     )
   }

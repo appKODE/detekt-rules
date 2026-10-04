@@ -57,6 +57,8 @@ kode:
     active: false
   InconsistentWhenTypeCheck:
     active: false
+  SealedClassCouldBeEnum:
+    active: false
 ```
 
 # Rules
@@ -75,6 +77,7 @@ kode:
 | `NullableValueClassProperty` | inactive | A `value class` whose property has a nullable type; make it non-null and use a nullable value class instead | — |
 | `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
 | `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified PascalCase name | — |
+| `SealedClassCouldBeEnum` | inactive | A sealed class or interface without type parameters and without a superclass whose inheritors (at least two, searched in the same file) are all objects with no state of their own | — |
 
 # Type resolution
 

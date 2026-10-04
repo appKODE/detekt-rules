@@ -29,3 +29,5 @@ kode:
     active: false
   InconsistentWhenTypeCheck:
     active: false
+  SealedClassCouldBeEnum:
+    active: false

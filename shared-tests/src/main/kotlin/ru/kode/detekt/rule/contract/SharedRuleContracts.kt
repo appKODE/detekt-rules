@@ -14,5 +14,6 @@ object SharedRuleContracts {
     "NullableValueClassProperty",
     "ConstantsNotAtBottom",
     "InconsistentWhenTypeCheck",
+    "SealedClassCouldBeEnum",
   )
 }
