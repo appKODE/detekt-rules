@@ -23,3 +23,5 @@ kode:
     ignoreInClassesDerivedFrom: []
     ignoreInInterfacesDerivedFrom: []
     ignorePropertiesOfType: []
+  NullableValueClassProperty:
+    active: false

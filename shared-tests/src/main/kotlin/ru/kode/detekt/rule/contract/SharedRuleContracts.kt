@@ -11,5 +11,6 @@ object SharedRuleContracts {
     "BlockingSqlDelightCall",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
+    "NullableValueClassProperty",
   )
 }

@@ -20,6 +20,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         BlockingSqlDelightCall(config),
         ImmutableDataClass(config),
         MissingTypeDeclaration(config),
+        NullableValueClassProperty(config),
       ),
     )
   }

@@ -21,3 +21,4 @@ Surface.kt:17:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of
 Surface.kt:24:19 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 UserWiring.kt:8:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class
 UserWiring.kt:18:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class
+ValueClasses.kt:4:20 NullableValueClassProperty Value class &quot;UserId&quot; wraps a nullable type: make the property non-null and use &quot;UserId?&quot;

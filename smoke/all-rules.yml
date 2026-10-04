@@ -22,3 +22,5 @@ kode:
     ignoreInClassesDerivedFrom: [ "ViewIntents" ]
     ignoreInInterfacesDerivedFrom: []
     ignorePropertiesOfType: [ "^Task\\d+<(?:[^<>]*|<[^<>]*>)*>$", "Result", "Unit", "ScreenTarget" ]
+  NullableValueClassProperty:
+    active: true
