@@ -61,6 +61,8 @@ kode:
     active: false
   UnusedLetResult:
     active: false
+  CoroutineScopeNotCancelled:
+    active: false
 ```
 
 # Rules
@@ -81,6 +83,7 @@ kode:
 | `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified PascalCase name | — |
 | `SealedClassCouldBeEnum` | inactive | A sealed class or interface without type parameters and without a superclass whose inheritors (at least two, searched in the same file) are all objects with no state of their own | — |
 | `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement). The last statement of a lambda is never reported | — |
+| `CoroutineScopeNotCancelled` | inactive | A class property initialized with `CoroutineScope(...)` or `MainScope()` when the class has no `cancel` call on it (`scope.cancel()`, `scope.coroutineContext.cancel()`, or `job.cancel()` for `CoroutineScope(job)`). Objects are skipped: they live as long as the process | — |
 
 # Type resolution
 

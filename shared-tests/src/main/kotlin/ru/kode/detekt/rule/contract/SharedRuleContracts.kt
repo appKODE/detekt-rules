@@ -16,5 +16,6 @@ object SharedRuleContracts {
     "InconsistentWhenTypeCheck",
     "SealedClassCouldBeEnum",
     "UnusedLetResult",
+    "CoroutineScopeNotCancelled",
   )
 }

@@ -25,6 +25,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> InconsistentWhenTypeCheck(config) },
         { config -> SealedClassCouldBeEnum(config) },
         { config -> UnusedLetResult(config) },
+        { config -> CoroutineScopeNotCancelled(config) },
       ),
     )
   }

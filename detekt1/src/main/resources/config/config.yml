@@ -33,3 +33,5 @@ kode:
     active: false
   UnusedLetResult:
     active: false
+  CoroutineScopeNotCancelled:
+    active: false
