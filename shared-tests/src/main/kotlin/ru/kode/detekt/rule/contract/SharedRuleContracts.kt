@@ -19,5 +19,6 @@ object SharedRuleContracts {
     "CoroutineScopeNotCancelled",
     "CancellationExceptionNotRethrown",
     "PublicSuspendFunctionInReactiveModel",
+    "UnhandledViewIntent",
   )
 }

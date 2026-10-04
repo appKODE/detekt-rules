@@ -33,4 +33,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: UnhandledViewIntent") {
+    val error = shouldThrow<IllegalArgumentException> {
+      UnhandledViewIntent().lint("class ViewModel")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

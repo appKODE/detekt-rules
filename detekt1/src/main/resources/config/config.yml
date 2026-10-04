@@ -41,3 +41,5 @@ kode:
   PublicSuspendFunctionInReactiveModel:
     active: false
     baseClasses: ['ReactiveModel']
+  UnhandledViewIntent:
+    active: false

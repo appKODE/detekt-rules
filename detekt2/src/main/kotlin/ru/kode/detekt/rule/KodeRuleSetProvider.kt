@@ -28,6 +28,7 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> CoroutineScopeNotCancelled(config) },
         { config -> CancellationExceptionNotRethrown(config) },
         { config -> PublicSuspendFunctionInReactiveModel(config) },
+        { config -> UnhandledViewIntent(config) },
       ),
     )
   }
