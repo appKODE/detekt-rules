@@ -11,7 +11,8 @@ Nine new rules. All of them are inactive by default: enable the ones you need in
 * `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects
 * `UnusedLetResult`: a `let { }` call used as a statement
 * `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it
-* `CancellationExceptionNotRethrown`: a broad `catch` in a `suspend` function that swallows `CancellationException`.
+* `CancellationExceptionNotRethrown`: a `catch` of `CancellationException` or of a broad type in a `suspend` function
+  that swallows `CancellationException`.
   On detekt 2 prefer the stock `SuspendFunSwallowedCancellation`
 * `PublicSuspendFunctionInReactiveModel`: a public `suspend` function of a reactive model (needs type resolution)
 * `UnhandledViewIntent`: view intents that the machine of a view model never handles (needs type resolution)
