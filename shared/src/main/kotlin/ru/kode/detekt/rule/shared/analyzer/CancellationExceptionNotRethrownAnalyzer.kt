@@ -1,19 +1,24 @@
 package ru.kode.detekt.rule.shared.analyzer
 
-import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCatchClause
+import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtThrowExpression
-import org.jetbrains.kotlin.psi.KtTreeVisitorVoid
 import org.jetbrains.kotlin.psi.KtTryExpression
 import org.jetbrains.kotlin.psi.KtUserType
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.psiUtil.anyDescendantOfType
+import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import ru.kode.detekt.rule.shared.KodeDiagnostic
+import ru.kode.detekt.rule.shared.KodeSemantic
 
 /**
- * Reports a `catch` of a broad exception type, or of `CancellationException` itself, in a `suspend` function that
- * does not rethrow: it swallows `CancellationException`, so the coroutine keeps running after it was cancelled.
+ * Reports a `catch` of a broad exception type, or of `CancellationException` itself, that does not rethrow, when its
+ * `try` block calls a `suspend` function: it swallows `CancellationException`, so the coroutine keeps running after
+ * it was cancelled.
  *
  * Wrong:
  *
@@ -43,50 +48,52 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
  *
  * Also correct: `throw e`, `coroutineContext.ensureActive()` or a call of one of [rethrowFunctions] in the broad
  * `catch` itself.
+ *
+ * The calls of the `try` block are resolved: a `try` in a suspend lambda (`scope.launch { try { } catch ... }`) is
+ * checked like one in a `suspend` function, and a `try` around code that never suspends is not reported.
  */
 class CancellationExceptionNotRethrownAnalyzer(
+  private val semantic: KodeSemantic,
   private val rethrowFunctions: List<String>,
 ) {
-  // Only `try` in the body of a `suspend fun` is checked, and the caught type and the rethrow are matched
-  // by name. A `try` in a suspend lambda of a regular function (`scope.launch { try { } catch ... }`) is not seen,
-  // a `throw e` under a condition that excludes cancellation counts as a rethrow, and a `try` without any suspension
-  // point (`try { json.decode(raw) } catch (e: Exception)`) is reported although nothing in it throws cancellation.
-  // Resolve the lambda's type, the thrown expression and the calls of the `try` block to cover those
-  fun analyze(function: KtNamedFunction): List<KodeDiagnostic> {
-    if (!function.hasModifier(KtTokens.SUSPEND_KEYWORD)) return emptyList()
-    val diagnostics = mutableListOf<KodeDiagnostic>()
-    function.accept(
-      object : KtTreeVisitorVoid() {
-        override fun visitNamedFunction(nested: KtNamedFunction) {
-          // a nested suspend function is analyzed on its own, a regular one (a local function, a callback of an
-          // anonymous object) has no suspension points
-          if (nested == function) super.visitNamedFunction(nested)
-        }
-
-        override fun visitTryExpression(expression: KtTryExpression) {
-          super.visitTryExpression(expression)
-          diagnostics += listOfNotNull(analyze(expression))
-        }
-      },
+  // The caught type and the rethrow are matched by name, so a `throw e` under a condition that excludes
+  // cancellation counts as a rethrow. Resolve the caught type and the thrown expression to cover those
+  fun analyze(expression: KtTryExpression): KodeDiagnostic? {
+    val clause = expression.catchClauses.firstOrNull { it.caughtType() in cancellationTypes } ?: return null
+    // cancellation never reaches the clauses below this one
+    if (clause.rethrows() || !expression.tryBlock.suspends()) return null
+    return KodeDiagnostic(
+      "Catching \"${clause.caughtType()}\" around a suspending call swallows CancellationException: " +
+        "rethrow it or call \"ensureActive()\"",
+      clause,
     )
-    return diagnostics
   }
 
-  private fun analyze(expression: KtTryExpression): KodeDiagnostic? {
-    for (clause in expression.catchClauses) {
-      val type = (clause.catchParameter?.typeReference?.typeElement as? KtUserType)?.referencedName
-      val rethrows = clause.rethrows()
-      if (type != "CancellationException" && type !in broadTypes) continue
-      // cancellation never reaches the clauses below this one
-      if (rethrows) return null
-      return KodeDiagnostic(
-        "Catching \"$type\" in a suspend function swallows CancellationException: " +
-          "rethrow it or call \"ensureActive()\"",
-        clause,
-      )
-    }
-    return null
-  }
+  /**
+   * Whether the block calls a `suspend` function itself. Code that runs elsewhere than the block it is written in
+   * does not count: a local function, an object and a lambda, except a lambda passed to an inline function.
+   */
+  // Only calls are suspension points here, so a `try` that suspends through an operator, a `for` over a
+  // channel or a delegated property alone is not reported, and a `crossinline` lambda counts as run in place.
+  // Resolve those like detekt's SuspendFunSwallowedCancellation does if they turn out to matter
+  private fun KtBlockExpression.suspends(): Boolean = anyDescendantOfType<KtCallExpression>(
+    canGoInside = { element ->
+      when (element) {
+        is KtNamedFunction, is KtClassOrObject -> false
+        is KtLambdaExpression -> element.isArgumentOfInlineCall()
+        else -> true
+      }
+    },
+    predicate = semantic::isSuspendCall,
+  )
+
+  private fun KtLambdaExpression.isArgumentOfInlineCall(): Boolean = getStrictParentOfType<KtValueArgument>()
+    ?.takeIf { it.getArgumentExpression() == this }
+    ?.getStrictParentOfType<KtCallExpression>()
+    ?.let(semantic::isInlineCall) == true
+
+  private fun KtCatchClause.caughtType(): String? =
+    (catchParameter?.typeReference?.typeElement as? KtUserType)?.referencedName
 
   private fun KtCatchClause.rethrows(): Boolean {
     val body = catchBody ?: return false
@@ -99,6 +106,7 @@ class CancellationExceptionNotRethrownAnalyzer(
   }
 
   private companion object {
-    val broadTypes = setOf("Throwable", "Exception", "RuntimeException", "IllegalStateException")
+    val cancellationTypes =
+      setOf("CancellationException", "Throwable", "Exception", "RuntimeException", "IllegalStateException")
   }
 }

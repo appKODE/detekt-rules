@@ -1,4 +1,5 @@
-Cancellation.kt:10:5 CancellationExceptionNotRethrown Catching &quot;Exception&quot; in a suspend function swallows CancellationException: rethrow it or call &quot;ensureActive()&quot;
+Cancellation.kt:10:5 CancellationExceptionNotRethrown Catching &quot;Exception&quot; around a suspending call swallows CancellationException: rethrow it or call &quot;ensureActive()&quot;
+Cancellation.kt:34:7 CancellationExceptionNotRethrown Catching &quot;Throwable&quot; around a suspending call swallows CancellationException: rethrow it or call &quot;ensureActive()&quot;
 ComponentCalls.kt:7:17 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
 ComponentCalls.kt:11:18 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
 ComponentCalls.kt:11:51 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available

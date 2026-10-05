@@ -20,3 +20,19 @@ suspend fun rethrow(action: suspend () -> Unit) {
     println(e)
   }
 }
+
+fun parse(raw: String): Int = try {
+  raw.toInt()
+} catch (e: Exception) {
+  0
+}
+
+fun start(launch: (suspend () -> Unit) -> Unit, action: suspend () -> Unit) {
+  launch {
+    try {
+      action()
+    } catch (e: Throwable) {
+      println(e)
+    }
+  }
+}

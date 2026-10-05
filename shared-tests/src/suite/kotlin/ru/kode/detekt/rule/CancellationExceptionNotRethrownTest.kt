@@ -1,15 +1,19 @@
 package ru.kode.detekt.rule
 
 import dev.detekt.test.TestConfig
-import dev.detekt.test.lint
+import dev.detekt.test.lintWithContext
+import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 
 class CancellationExceptionNotRethrownTest : ShouldSpec({
+  val environment = createEnvironment()
+
   should("report a broad catch that does not rethrow") {
     val code = """
+      $STUBS
       suspend fun load() {
         try {
           fetch()
@@ -19,61 +23,95 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
       }
     """.trimIndent()
 
-    val finding = CancellationExceptionNotRethrown().lint(code).single()
+    val finding = CancellationExceptionNotRethrown().lintWithContext(environment, code).single()
 
-    finding.message shouldBe "Catching \"Exception\" in a suspend function swallows CancellationException: " +
+    finding.message shouldBe "Catching \"Exception\" around a suspending call swallows CancellationException: " +
       "rethrow it or call \"ensureActive()\""
     finding.shouldStartAt(code, "catch (e: Exception)")
   }
 
-  should("report every broad type, once per try, also in lambdas of a suspend function") {
+  should("report every broad type, once per try") {
     val code = """
-      suspend fun load(items: List<Int>) {
+      $STUBS
+      suspend fun load() {
         try { fetch() } catch (e: Throwable) { }
         try { fetch() } catch (e: kotlin.RuntimeException) { throw IllegalStateException(e) }
         try { fetch() } catch (e: IllegalStateException) { } catch (e: Exception) { }
-        items.forEach {
-          try { fetch() } catch (e: Exception) { }
-        }
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code) shouldHaveSize 4
+    CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 3
   }
 
   should("report a catch of CancellationException that does not rethrow, and not the clauses after it") {
     val code = """
+      $STUBS
       suspend fun load() {
         try { fetch() } catch (e: CancellationException) { log(e) } catch (e: Exception) { log(e) }
       }
     """.trimIndent()
 
-    val finding = CancellationExceptionNotRethrown().lint(code).single()
+    val finding = CancellationExceptionNotRethrown().lintWithContext(environment, code).single()
 
-    finding.message shouldBe "Catching \"CancellationException\" in a suspend function swallows " +
+    finding.message shouldBe "Catching \"CancellationException\" around a suspending call swallows " +
       "CancellationException: rethrow it or call \"ensureActive()\""
     finding.shouldStartAt(code, "catch (e: CancellationException)")
   }
 
-  should("not report regular functions nested in a suspend function") {
+  should("report a try in a suspend lambda of a regular function") {
     val code = """
-      suspend fun load() = suspendCancellableCoroutine { cont ->
-        client.call(object : Callback {
-          override fun onResult(raw: String) {
-            try { cont.resume(parse(raw)) } catch (e: Exception) { cont.resumeWithException(e) }
-          }
-        })
-        fun local() {
+      $STUBS
+      fun start(scope: Scope) {
+        scope.launch {
           try { fetch() } catch (e: Exception) { }
         }
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code).shouldBeEmpty()
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).single()
+  }
+
+  should("report a suspending call made in a lambda of an inline function or through a suspend function value") {
+    val code = """
+      $STUBS
+      suspend fun load(items: List<Int>, action: suspend () -> Unit) {
+        try { items.forEach { fetch() } } catch (e: Exception) { }
+        try { measure { run { fetch() } } } catch (e: Exception) { }
+        try { action() } catch (e: Exception) { }
+        try { parse("1") + fetch() } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 4
+  }
+
+  should("not report a try block that makes no suspending call itself") {
+    val code = """
+      $STUBS
+      suspend fun load(scope: Scope, raw: String) {
+        try { parse(raw) } catch (e: Exception) { }
+        try { scope.launch { fetch() } } catch (e: Exception) { }
+        try { later { parse(raw) } } catch (e: Exception) { }
+        try {
+          suspend fun local() = fetch()
+          val callback = object : Runnable {
+            override fun run() { scope.launch { fetch() } }
+          }
+        } catch (e: Exception) { }
+        try { unknown() } catch (e: Exception) { }
+      }
+
+      fun regular(raw: String) {
+        try { parse(raw) } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("not report a catch that rethrows or checks for cancellation") {
     val code = """
+      $STUBS
       suspend fun load() {
         try { fetch() } catch (e: Exception) { throw e }
         try { fetch() } catch (e: Exception) {
@@ -88,42 +126,25 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code).shouldBeEmpty()
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("not report narrow catches and try without catch") {
     val code = """
+      $STUBS
       suspend fun load() {
         try { fetch() } catch (e: IOException) { log(e) }
         try { fetch() } catch (e: IOException) { log(e) } catch (e: CancellationException) { throw e }
-        try { fetch() } finally { close() }
+        try { fetch() } finally { log(Exception()) }
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code).shouldBeEmpty()
-  }
-
-  should("not report regular functions, and report a nested suspend function once") {
-    val code = """
-      fun regular() {
-        try { fetch() } catch (e: Exception) { }
-        suspend fun nested() {
-          try { fetch() } catch (e: Exception) { }
-        }
-      }
-
-      suspend fun outer() {
-        suspend fun nested() {
-          try { fetch() } catch (e: Exception) { }
-        }
-      }
-    """.trimIndent()
-
-    CancellationExceptionNotRethrown().lint(code) shouldHaveSize 2
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("treat a call of a configured function as a rethrow") {
     val code = """
+      $STUBS
       suspend fun load() {
         try {
           fetch()
@@ -134,8 +155,26 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code) shouldHaveSize 1
+    CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 1
     val config = TestConfig("rethrowFunctions" to listOf("rethrowCancellation"))
-    CancellationExceptionNotRethrown(config).lint(code).shouldBeEmpty()
+    CancellationExceptionNotRethrown(config).lintWithContext(environment, code).shouldBeEmpty()
   }
 })
+
+// kotlinx.coroutines is not on the test classpath
+private const val STUBS = """package work
+
+      import java.io.IOException
+      import kotlin.coroutines.CoroutineContext
+      import kotlin.coroutines.cancellation.CancellationException
+      import kotlin.coroutines.coroutineContext
+
+      class Scope { fun launch(block: suspend () -> Unit) {} }
+      suspend fun fetch(): Int = 1
+      fun parse(raw: String): Int = raw.length
+      fun log(error: Throwable) {}
+      fun later(block: () -> Unit) {}
+      inline fun <T> measure(block: () -> T): T = block()
+      fun CoroutineContext.ensureActive() {}
+      fun Throwable.rethrowCancellation() {}
+"""

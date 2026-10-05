@@ -94,4 +94,16 @@ class NoTypeResolutionTest : ShouldSpec({
 
     SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
   }
+
+  should("skip the check without type resolution: CancellationExceptionNotRethrown") {
+    val code = """
+      suspend fun fetch() {}
+
+      suspend fun load() {
+        try { fetch() } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lint(code).shouldBeEmpty()
+  }
 })

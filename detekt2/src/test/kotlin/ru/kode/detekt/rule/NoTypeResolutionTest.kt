@@ -65,4 +65,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: CancellationExceptionNotRethrown") {
+    val error = shouldThrow<IllegalArgumentException> {
+      CancellationExceptionNotRethrown().lint("suspend fun load() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

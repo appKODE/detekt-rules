@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
@@ -87,6 +88,13 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
       .orEmpty()
       .mapNotNull { it.psi as? KtClassOrObject }
   }
+
+  override fun isSuspendCall(call: KtCallExpression): Boolean = analyze(call) { function(call)?.isSuspend == true }
+
+  override fun isInlineCall(call: KtCallExpression): Boolean = analyze(call) { function(call)?.isInline == true }
+
+  private fun KaSession.function(call: KtCallExpression): KaNamedFunctionSymbol? =
+    call.resolveToCall()?.singleFunctionCallOrNull()?.symbol as? KaNamedFunctionSymbol
 }
 
 /** Renders [type] like detekt1's (K1) `KotlinType.toString()`. */

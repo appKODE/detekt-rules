@@ -258,6 +258,29 @@ class KodeSemanticContractTest : ShouldSpec({
     )
   }
 
+  fun suspendCallAnswers(ask: KodeSemantic.(KtCallExpression) -> Boolean): Set<String> =
+    withKodeSemantic(environment, SUSPEND_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().filter { semantic.ask(it) }.mapTo(mutableSetOf()) { it.text }
+    }
+
+  should("tell a call of a suspend function, also through a value of a suspend function type") {
+    suspendCallAnswers { isSuspendCall(it) } shouldContainExactly setOf(
+      "pause()",
+      "action()",
+      "suspendInline { regular() }",
+      "member()",
+      "ext()",
+    )
+  }
+
+  should("tell a call of an inline function") {
+    suspendCallAnswers { isInlineCall(it) } shouldContainExactly setOf(
+      "inlined { pause() }",
+      "suspendInline { regular() }",
+      "repeat(2) { regular() }",
+    )
+  }
+
   should("list the direct inheritors of a sealed class, of every file") {
     withKodeSemantic(environment, SEALED_FIXTURE, SEALED_FIXTURE_OTHER_FILE) { semantic, file ->
       file.collectDescendantsOfType<KtClass>().associate { klass ->
@@ -521,4 +544,35 @@ private val SEALED_FIXTURE_OTHER_FILE =
 
     class Square(val side: Int) : Shape
     object Dot : Shape
+  """.trimIndent()
+
+// language=kotlin
+private val SUSPEND_FIXTURE =
+  """
+    package suspending
+
+    suspend fun pause() {}
+    fun regular() {}
+    inline fun inlined(block: () -> Unit) = block()
+    suspend inline fun suspendInline(block: () -> Unit) = block()
+    fun later(block: suspend () -> Unit) {}
+    class Worker {
+      suspend fun member() {}
+      suspend fun run() { member() }
+    }
+    suspend fun Worker.ext() {}
+
+    suspend fun probe(action: suspend () -> Unit, callback: () -> Unit, worker: Worker) {
+      pause()
+      regular()
+      action()
+      callback()
+      inlined { pause() }
+      suspendInline { regular() }
+      later { regular() }
+      repeat(2) { regular() }
+      worker.ext()
+      Worker()
+      unknown()
+    }
   """.trimIndent()

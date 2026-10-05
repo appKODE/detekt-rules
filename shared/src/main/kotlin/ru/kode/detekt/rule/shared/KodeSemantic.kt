@@ -53,4 +53,13 @@ interface KodeSemantic {
    * sources they are; empty when [klass] is not sealed.
    */
   fun sealedInheritors(klass: KtClass): List<KtClassOrObject>
+
+  /**
+   * Whether [call] resolves to a `suspend` function, the `invoke` of a value of a suspend function type included
+   * (`action()` for `action: suspend () -> Unit`).
+   */
+  fun isSuspendCall(call: KtCallExpression): Boolean
+
+  /** Whether [call] resolves to an `inline` function, so its lambda arguments run in the place of the call. */
+  fun isInlineCall(call: KtCallExpression): Boolean
 }

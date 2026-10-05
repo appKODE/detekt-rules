@@ -10,6 +10,7 @@ import io.gitlab.arturbosch.detekt.api.Severity
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -99,4 +100,11 @@ internal class BindingContextKodeSemantic(
     ?.sealedSubclasses
     .orEmpty()
     .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClassOrObject }
+
+  override fun isSuspendCall(call: KtCallExpression): Boolean = call.function()?.isSuspend == true
+
+  override fun isInlineCall(call: KtCallExpression): Boolean = call.function()?.isInline == true
+
+  private fun KtCallExpression.function(): FunctionDescriptor? =
+    getResolvedCall(bindingContext)?.resultingDescriptor as? FunctionDescriptor
 }

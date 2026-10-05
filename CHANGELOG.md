@@ -12,9 +12,8 @@ Nine new rules. All of them are inactive by default: enable the ones you need in
   resolution)
 * `UnusedLetResult`: a `let { }` call used as a statement (needs type resolution)
 * `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it
-* `CancellationExceptionNotRethrown`: a `catch` of `CancellationException` or of a broad type in a `suspend` function
-  that swallows `CancellationException`.
-  On detekt 2 prefer the stock `SuspendFunSwallowedCancellation`
+* `CancellationExceptionNotRethrown`: a `catch` of `CancellationException` or of a broad type around a suspending
+  call that swallows `CancellationException` (needs type resolution)
 * `PublicSuspendFunctionInReactiveModel`: a public `suspend` function of a reactive model (needs type resolution)
 * `UnhandledViewIntent`: view intents that the machine of a view model never handles (needs type resolution)
 
