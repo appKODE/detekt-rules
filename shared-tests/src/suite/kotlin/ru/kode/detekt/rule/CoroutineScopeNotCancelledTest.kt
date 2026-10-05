@@ -51,17 +51,62 @@ class CoroutineScopeNotCancelledTest : ShouldSpec({
         private val second = CoroutineScope(Dispatchers.Main)
         private val third = CoroutineScope(Dispatchers.Main)
         private var fourth: CoroutineScope? = MainScope()
+        private val fifth = CoroutineScope(Dispatchers.Main)
+        private val sixth = CoroutineScope(Dispatchers.Main)
 
         fun release() {
           first.cancel()
           this.second.cancel("released")
           third.coroutineContext.cancel()
           fourth?.cancel()
+          fifth.coroutineContext[Job]?.cancel()
+          (sixth).cancel()
         }
       }
     """.trimIndent()
 
     CoroutineScopeNotCancelled().lint(code).shouldBeEmpty()
+  }
+
+  should("report a scope when only a job launched in it is cancelled") {
+    val code = """
+      class Player {
+        private val scope = CoroutineScope(Dispatchers.Main)
+
+        fun stop() {
+          scope.launch { }.cancel()
+          scope.coroutineContext.job.children.first().cancel()
+        }
+      }
+    """.trimIndent()
+
+    CoroutineScopeNotCancelled().lint(code) shouldHaveSize 1
+  }
+
+  should("not count a cancel call of a nested class, and count one made in an anonymous object") {
+    val code = """
+      class Outer {
+        private val scope = CoroutineScope(Dispatchers.Main)
+        private val other = CoroutineScope(Dispatchers.Main)
+        private val listener = object : Listener {
+          override fun onClose() {
+            other.cancel()
+          }
+        }
+
+        class Nested {
+          private val scope = CoroutineScope(Dispatchers.Main)
+
+          fun release() {
+            scope.cancel()
+          }
+        }
+      }
+    """.trimIndent()
+
+    val finding = CoroutineScopeNotCancelled().lint(code).single()
+
+    finding.message shouldBe "CoroutineScope \"scope\" is created in class \"Outer\" but never cancelled"
   }
 
   should("not report a scope built from a job that is cancelled") {
