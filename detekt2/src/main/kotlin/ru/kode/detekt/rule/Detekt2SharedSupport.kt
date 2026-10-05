@@ -10,6 +10,8 @@ import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
@@ -25,6 +27,7 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.types.Variance
@@ -74,6 +77,15 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
   override fun returnsUnit(literal: KtFunctionLiteral): Boolean = analyze(literal) {
     // `isUnitType` holds for `Unit?` too
     literal.symbol.returnType.let { it.isUnitType && !it.isMarkedNullable }
+  }
+
+  override fun sealedInheritors(klass: KtClass): List<KtClassOrObject> = analyze(klass) {
+    (klass.classSymbol as? KaNamedClassSymbol)
+      // `sealedClassInheritors` fails on a class that is not sealed
+      ?.takeIf { it.modality == KaSymbolModality.SEALED }
+      ?.sealedClassInheritors
+      .orEmpty()
+      .mapNotNull { it.psi as? KtClassOrObject }
   }
 }
 

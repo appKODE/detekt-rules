@@ -57,4 +57,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: SealedClassCouldBeEnum") {
+    val error = shouldThrow<IllegalArgumentException> {
+      SealedClassCouldBeEnum().lint("sealed interface Direction")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

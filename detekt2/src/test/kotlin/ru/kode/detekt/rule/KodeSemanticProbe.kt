@@ -8,14 +8,18 @@ import dev.detekt.test.utils.KotlinEnvironmentContainer
 import org.jetbrains.kotlin.psi.KtFile
 import ru.kode.detekt.rule.shared.KodeSemantic
 
-/** Runs [block] with this engine's [KodeSemantic] inside the Analysis API session of a linted [code] file. */
+/**
+ * Runs [block] with this engine's [KodeSemantic] inside the Analysis API session of a linted [code] file.
+ * [dependencyCodes] are other files of the same sources.
+ */
 fun <T> withKodeSemantic(
   environment: KotlinEnvironmentContainer,
   code: String,
+  vararg dependencyCodes: String,
   block: (KodeSemantic, KtFile) -> T,
 ): T {
   val probe = KodeSemanticProbe(block)
-  probe.lintWithContext(environment, code)
+  probe.lintWithContext(environment, code, *dependencyCodes)
   return probe.results.single()
 }
 

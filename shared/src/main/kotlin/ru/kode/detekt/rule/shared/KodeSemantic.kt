@@ -3,6 +3,7 @@ package ru.kode.detekt.rule.shared
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 
@@ -46,4 +47,10 @@ interface KodeSemantic {
    * type is not resolved does not return `Unit`.
    */
   fun returnsUnit(literal: KtFunctionLiteral): Boolean
+
+  /**
+   * Declarations of the direct inheritors of the sealed class or interface [klass], in whatever file of the analyzed
+   * sources they are; empty when [klass] is not sealed.
+   */
+  fun sealedInheritors(klass: KtClass): List<KtClassOrObject>
 }

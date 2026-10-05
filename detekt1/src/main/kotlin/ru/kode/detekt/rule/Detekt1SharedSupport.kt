@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
@@ -93,4 +94,9 @@ internal class BindingContextKodeSemantic(
 
   override fun returnsUnit(literal: KtFunctionLiteral): Boolean =
     bindingContext[BindingContext.FUNCTION, literal]?.returnType?.let(KotlinBuiltIns::isUnit) == true
+
+  override fun sealedInheritors(klass: KtClass): List<KtClassOrObject> = bindingContext[BindingContext.CLASS, klass]
+    ?.sealedSubclasses
+    .orEmpty()
+    .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClassOrObject }
 }

@@ -83,4 +83,15 @@ class NoTypeResolutionTest : ShouldSpec({
 
     UnusedLetResult().lint(code).shouldBeEmpty()
   }
+
+  should("skip the check without type resolution: SealedClassCouldBeEnum") {
+    val code = """
+      sealed interface Direction {
+        object Up : Direction
+        object Down : Direction
+      }
+    """.trimIndent()
+
+    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+  }
 })

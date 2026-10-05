@@ -1,11 +1,15 @@
 package ru.kode.detekt.rule
 
-import dev.detekt.test.lint
+import dev.detekt.test.lintWithContext
+import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 class SealedClassCouldBeEnumTest : ShouldSpec({
+  val environment = createEnvironment()
+
   should("report a sealed interface with nested object inheritors only") {
     val code = """
       sealed interface Direction {
@@ -14,7 +18,7 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       }
     """.trimIndent()
 
-    val finding = SealedClassCouldBeEnum().lint(code).single()
+    val finding = SealedClassCouldBeEnum().lintWithContext(environment, code).single()
 
     finding.message shouldBe "Sealed type \"Direction\" has only object inheritors: use an enum class instead"
     finding.shouldStartAt(code, "sealed interface Direction")
@@ -33,23 +37,18 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       }
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).single()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).single()
   }
 
-  should("not report when an inheritor is a class or an anonymous object") {
+  should("not report when an inheritor is a class") {
     val code = """
       sealed interface State {
         object Loading : State
         class Content(val items: Int) : State
       }
-      sealed interface Action {
-        object Open : Action
-        object Close : Action
-      }
-      val custom = object : Action {}
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("not report when an object has own state or another supertype") {
@@ -67,7 +66,7 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       }
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("not report generic sealed types, sealed types with a superclass and types with fewer than two inheritors") {
@@ -91,11 +90,10 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       object Other : Declared
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).shouldBeEmpty()
   }
 
-  // a known limit: inheritors are matched by the simple name of the supertype
-  should("not report a sealed type when a same-named sealed type of the file has a class inheritor") {
+  should("tell same-named sealed types apart") {
     val code = """
       class First {
         sealed interface State {
@@ -105,13 +103,38 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       }
 
       class Second {
-        sealed interface State {
-          class Content(val items: List<String>) : State
+        sealed class State {
+          class Content(val items: List<String>) : State()
+          object Empty : State()
         }
       }
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).single().shouldStartAt(code, "sealed interface State")
+  }
+
+  should("count the inheritors declared in other files") {
+    val code = """
+      package shapes
+
+      sealed interface Direction {
+        object Up : Direction
+      }
+      sealed interface Shape {
+        object Circle : Shape
+        object Dot : Shape
+      }
+    """.trimIndent()
+    val other = """
+      package shapes
+
+      object Down : Direction
+      class Square(val side: Int) : Shape
+    """.trimIndent()
+
+    SealedClassCouldBeEnum().lintWithContext(environment, code, other).map { it.message }.shouldContainExactly(
+      "Sealed type \"Direction\" has only object inheritors: use an enum class instead",
+    )
   }
 
   should("not report a class that is not sealed") {
@@ -121,6 +144,6 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
       object Down : Direction
     """.trimIndent()
 
-    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+    SealedClassCouldBeEnum().lintWithContext(environment, code).shouldBeEmpty()
   }
 })

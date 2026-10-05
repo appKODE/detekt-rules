@@ -8,7 +8,8 @@ Nine new rules. All of them are inactive by default: enable the ones you need in
 * `ConstantsNotAtBottom`: `const val`s declared above other declarations of a file, or in a companion object that is
   not the last declaration of its class
 * `InconsistentWhenTypeCheck`: a `when` mixing `is` checks with equality checks of objects (needs type resolution)
-* `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects
+* `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects (needs type
+  resolution)
 * `UnusedLetResult`: a `let { }` call used as a statement (needs type resolution)
 * `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it
 * `CancellationExceptionNotRethrown`: a `catch` of `CancellationException` or of a broad type in a `suspend` function

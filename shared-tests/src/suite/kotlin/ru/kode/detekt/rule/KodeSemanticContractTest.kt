@@ -257,6 +257,22 @@ class KodeSemanticContractTest : ShouldSpec({
       "lUnresolved" to false,
     )
   }
+
+  should("list the direct inheritors of a sealed class, of every file") {
+    withKodeSemantic(environment, SEALED_FIXTURE, SEALED_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtClass>().associate { klass ->
+        klass.name!! to semantic.sealedInheritors(klass).map { it.name }.sortedBy { it }
+      }
+    } shouldContainExactly mapOf(
+      "Shape" to listOf("Circle", "Dot", "Polygon", "Square"),
+      "Polygon" to listOf("Companion", "Triangle"),
+      "Triangle" to emptyList(),
+      "Lonely" to emptyList(),
+      "Open" to emptyList(),
+      "Level" to emptyList(),
+      "Low" to emptyList(),
+    )
+  }
 })
 
 private val UNRESOLVED = setOf("pUnresolved", "pUnresolvedType", "pFunUnresolved")
@@ -478,4 +494,31 @@ private val LAMBDA_FIXTURE =
     val lGenericValue = run { 1 }
     val lNullableUnit = run { null as Unit? }
     val lUnresolved = unknown { 1 }
+  """.trimIndent()
+
+// language=kotlin
+private val SEALED_FIXTURE =
+  """
+    package sealed
+
+    sealed interface Shape {
+      object Circle : Shape
+    }
+    sealed class Polygon : Shape {
+      class Triangle : Polygon()
+      companion object : Polygon()
+    }
+    sealed interface Lonely
+    open class Open
+    object Child : Open()
+    enum class Level { Low }
+  """.trimIndent()
+
+// language=kotlin
+private val SEALED_FIXTURE_OTHER_FILE =
+  """
+    package sealed
+
+    class Square(val side: Int) : Shape
+    object Dot : Shape
   """.trimIndent()

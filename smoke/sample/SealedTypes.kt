@@ -9,3 +9,7 @@ sealed class Shape {
   object Circle : Shape()
   class Square(val side: Int) : Shape()
 }
+
+sealed interface Axis {
+  object Horizontal : Axis
+}
