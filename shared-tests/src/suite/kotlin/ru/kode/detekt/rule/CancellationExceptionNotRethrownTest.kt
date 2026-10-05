@@ -26,23 +26,50 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
     finding.shouldStartAt(code, "catch (e: Exception)")
   }
 
-  should("report every broad type, once per try, also in lambdas and local functions of a suspend function") {
+  should("report every broad type, once per try, also in lambdas of a suspend function") {
     val code = """
       suspend fun load(items: List<Int>) {
         try { fetch() } catch (e: Throwable) { }
         try { fetch() } catch (e: kotlin.RuntimeException) { throw IllegalStateException(e) }
         try { fetch() } catch (e: IllegalStateException) { } catch (e: Exception) { }
-        try { fetch() } catch (e: CancellationException) { log(e) } catch (e: Exception) { }
         items.forEach {
           try { fetch() } catch (e: Exception) { }
         }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lint(code) shouldHaveSize 4
+  }
+
+  should("report a catch of CancellationException that does not rethrow, and not the clauses after it") {
+    val code = """
+      suspend fun load() {
+        try { fetch() } catch (e: CancellationException) { log(e) } catch (e: Exception) { log(e) }
+      }
+    """.trimIndent()
+
+    val finding = CancellationExceptionNotRethrown().lint(code).single()
+
+    finding.message shouldBe "Catching \"CancellationException\" in a suspend function swallows " +
+      "CancellationException: rethrow it or call \"ensureActive()\""
+    finding.shouldStartAt(code, "catch (e: CancellationException)")
+  }
+
+  should("not report regular functions nested in a suspend function") {
+    val code = """
+      suspend fun load() = suspendCancellableCoroutine { cont ->
+        client.call(object : Callback {
+          override fun onResult(raw: String) {
+            try { cont.resume(parse(raw)) } catch (e: Exception) { cont.resumeWithException(e) }
+          }
+        })
         fun local() {
           try { fetch() } catch (e: Exception) { }
         }
       }
     """.trimIndent()
 
-    CancellationExceptionNotRethrown().lint(code) shouldHaveSize 6
+    CancellationExceptionNotRethrown().lint(code).shouldBeEmpty()
   }
 
   should("not report a catch that rethrows or checks for cancellation") {
@@ -68,7 +95,7 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
     val code = """
       suspend fun load() {
         try { fetch() } catch (e: IOException) { log(e) }
-        try { fetch() } catch (e: CancellationException) { log(e) }
+        try { fetch() } catch (e: IOException) { log(e) } catch (e: CancellationException) { throw e }
         try { fetch() } finally { close() }
       }
     """.trimIndent()

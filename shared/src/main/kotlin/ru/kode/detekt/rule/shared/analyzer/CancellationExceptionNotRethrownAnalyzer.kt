@@ -12,8 +12,8 @@ import org.jetbrains.kotlin.psi.psiUtil.anyDescendantOfType
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 
 /**
- * Reports a `catch` of a broad exception type in a `suspend` function that does not rethrow: it also catches
- * `CancellationException`, so the coroutine keeps running after it was cancelled.
+ * Reports a `catch` of a broad exception type, or of `CancellationException` itself, in a `suspend` function that
+ * does not rethrow: it swallows `CancellationException`, so the coroutine keeps running after it was cancelled.
  *
  * Wrong:
  *
@@ -49,15 +49,18 @@ class CancellationExceptionNotRethrownAnalyzer(
 ) {
   // Only `try` in the body of a `suspend fun` is checked, and the caught type and the rethrow are matched
   // by name. A `try` in a suspend lambda of a regular function (`scope.launch { try { } catch ... }`) is not seen,
-  // and a `throw e` under a condition that excludes cancellation counts as a rethrow. Resolve the lambda's type and
-  // the thrown expression to cover those
+  // a `throw e` under a condition that excludes cancellation counts as a rethrow, and a `try` without any suspension
+  // point (`try { json.decode(raw) } catch (e: Exception)`) is reported although nothing in it throws cancellation.
+  // Resolve the lambda's type, the thrown expression and the calls of the `try` block to cover those
   fun analyze(function: KtNamedFunction): List<KodeDiagnostic> {
     if (!function.hasModifier(KtTokens.SUSPEND_KEYWORD)) return emptyList()
     val diagnostics = mutableListOf<KodeDiagnostic>()
     function.accept(
       object : KtTreeVisitorVoid() {
         override fun visitNamedFunction(nested: KtNamedFunction) {
-          if (nested == function || !nested.hasModifier(KtTokens.SUSPEND_KEYWORD)) super.visitNamedFunction(nested)
+          // a nested suspend function is analyzed on its own, a regular one (a local function, a callback of an
+          // anonymous object) has no suspension points
+          if (nested == function) super.visitNamedFunction(nested)
         }
 
         override fun visitTryExpression(expression: KtTryExpression) {
@@ -73,15 +76,14 @@ class CancellationExceptionNotRethrownAnalyzer(
     for (clause in expression.catchClauses) {
       val type = (clause.catchParameter?.typeReference?.typeElement as? KtUserType)?.referencedName
       val rethrows = clause.rethrows()
+      if (type != "CancellationException" && type !in broadTypes) continue
       // cancellation never reaches the clauses below this one
-      if (type == "CancellationException" && rethrows) return null
-      if (type in broadTypes && !rethrows) {
-        return KodeDiagnostic(
-          "Catching \"$type\" in a suspend function swallows CancellationException: " +
-            "rethrow it or call \"ensureActive()\"",
-          clause,
-        )
-      }
+      if (rethrows) return null
+      return KodeDiagnostic(
+        "Catching \"$type\" in a suspend function swallows CancellationException: " +
+          "rethrow it or call \"ensureActive()\"",
+        clause,
+      )
     }
     return null
   }
