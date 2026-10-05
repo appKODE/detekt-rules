@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.descriptors.TypeAliasDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -101,7 +102,10 @@ internal class BindingContextKodeSemantic(
     call.function()?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtNamedFunction }
 
   override fun isObjectReference(reference: KtNameReferenceExpression): Boolean =
-    (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
+    when (val target = bindingContext[BindingContext.REFERENCE_TARGET, reference]) {
+      is TypeAliasDescriptor -> target.classDescriptor
+      else -> target as? ClassDescriptor
+    }
       // the name of a class used as a value refers to its companion object
       ?.takeUnless { it.isCompanionObject }
       ?.kind == ClassKind.OBJECT

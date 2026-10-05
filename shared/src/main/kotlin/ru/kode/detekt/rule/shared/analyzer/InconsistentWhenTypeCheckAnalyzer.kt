@@ -3,6 +3,7 @@ package ru.kode.detekt.rule.shared.analyzer
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtWhenConditionIsPattern
 import org.jetbrains.kotlin.psi.KtWhenConditionWithExpression
 import org.jetbrains.kotlin.psi.KtWhenExpression
@@ -41,9 +42,12 @@ class InconsistentWhenTypeCheckAnalyzer(
     if (expression.subjectExpression == null) return emptyList()
     val conditions = expression.entries.flatMap { it.conditions.asList() }
     if (conditions.none { it is KtWhenConditionIsPattern }) return emptyList()
-    return conditions.filterIsInstance<KtWhenConditionWithExpression>()
-      .filter { it.expression?.lastName()?.let(semantic::isObjectReference) == true }
-      .map { KodeDiagnostic("Use \"is ${it.text}\" like the other branches of this \"when\" do", it) }
+    return conditions.filterIsInstance<KtWhenConditionWithExpression>().mapNotNull { condition ->
+      // `(State.Loading) ->`
+      KtPsiUtil.deparenthesize(condition.expression)
+        ?.takeIf { it.lastName()?.let(semantic::isObjectReference) == true }
+        ?.let { KodeDiagnostic("Use \"is ${it.text}\" like the other branches of this \"when\" do", condition) }
+    }
   }
 
   /** Last segment of a plain name or of a chain of plain names, null for anything else. */

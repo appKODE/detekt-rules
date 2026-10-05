@@ -226,6 +226,8 @@ class KodeSemanticContractTest : ShouldSpec({
       "rCompanion" to "WithCompanion",
       "rCompanionObject" to null,
       "rAlias" to null,
+      "rObjectAlias" to null,
+      "rCompanionAlias" to null,
       "rProperty" to null,
       "rInstance" to null,
       "rLibrary" to null,
@@ -236,7 +238,7 @@ class KodeSemanticContractTest : ShouldSpec({
 
   should("tell a reference to an object declaration from any other reference") {
     referenceAnswers { isObjectReference(it) }.filterValues { it }.keys shouldContainExactly
-      setOf("rObject", "rNestedObject", "rLibraryObject")
+      setOf("rObject", "rNestedObject", "rLibraryObject", "rObjectAlias")
   }
 
   should("tell a lambda that returns Unit from a lambda that returns a value") {
@@ -520,6 +522,8 @@ private val REFERENCE_FIXTURE =
       object Inside
     }
     typealias Alias = Intents
+    typealias ObjectAlias = Holder
+    typealias CompanionAlias = WithCompanion.Companion
     val top = 4
     val instance = Intents()
 
@@ -531,6 +535,8 @@ private val REFERENCE_FIXTURE =
     val rCompanion = WithCompanion::onTap
     val rCompanionObject = WithCompanion.Companion::shared
     val rAlias = Alias::onClick
+    val rObjectAlias = ObjectAlias::value
+    val rCompanionAlias = CompanionAlias::shared
     val rProperty = ::top
     val rInstance = instance::onClick
     val rNestedObject = WithCompanion.Inside::hashCode

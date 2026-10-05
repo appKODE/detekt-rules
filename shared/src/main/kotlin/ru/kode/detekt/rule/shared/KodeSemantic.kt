@@ -38,8 +38,8 @@ interface KodeSemantic {
 
   /**
    * Whether [reference] refers to an `object` declaration (`Loading` in `State.Loading`), of the analyzed sources or
-   * of a library. A companion object referred to by the name of its class, an enum entry, a property and an
-   * unresolved reference are not objects.
+   * of a library, also through a type alias of it. A companion object, an enum entry, a property and an unresolved
+   * reference are not objects.
    */
   fun isObjectReference(reference: KtNameReferenceExpression): Boolean
 

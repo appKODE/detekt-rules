@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
+import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
@@ -87,7 +88,11 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
   }
 
   override fun isObjectReference(reference: KtNameReferenceExpression): Boolean = analyze(reference) {
-    (reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.classKind == KaClassKind.OBJECT
+    val target = when (val symbol = reference.mainReference.resolveToSymbol()) {
+      is KaTypeAliasSymbol -> symbol.expandedType.expandedSymbol
+      else -> symbol as? KaClassSymbol
+    }
+    target?.classKind == KaClassKind.OBJECT
   }
 
   override fun returnsUnit(literal: KtFunctionLiteral): Boolean = analyze(literal) {

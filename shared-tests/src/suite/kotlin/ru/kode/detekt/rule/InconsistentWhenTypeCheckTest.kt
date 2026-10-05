@@ -46,6 +46,30 @@ class InconsistentWhenTypeCheckTest : ShouldSpec({
     )
   }
 
+  should("report an object in parentheses and a type alias of an object") {
+    val code = """
+      $STUBS
+      typealias Progress = State.Loading
+      typealias Plain = WithCompanion
+      typealias Shared = WithCompanion.Companion
+
+      fun render(state: Any) = when (state) {
+        is State.Content -> 1
+        Progress -> 2
+        (State.Failed) -> 3
+        ((Standalone)) -> 4
+        Plain, Shared, (MAX_VALUE) -> 5
+        else -> 0
+      }
+    """.trimIndent()
+
+    InconsistentWhenTypeCheck().lintWithContext(environment, code).map { it.message }.shouldContainExactly(
+      "Use \"is Progress\" like the other branches of this \"when\" do",
+      "Use \"is State.Failed\" like the other branches of this \"when\" do",
+      "Use \"is Standalone\" like the other branches of this \"when\" do",
+    )
+  }
+
   should("not report a when using is-checks only, or equality checks only") {
     val code = """
       $STUBS
