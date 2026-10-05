@@ -31,6 +31,8 @@ import ru.kode.detekt.rule.shared.KodeSemantic
  * ```
  *
  * Correct: the machine also has `onEach(intent(Intents::onItemClick)) { ... }`.
+ *
+ * The finding is put on the `machine` name and lists the unhandled intents as `Intents.onItemClick`.
  */
 class UnhandledViewIntentAnalyzer(
   private val semantic: KodeSemantic,
@@ -50,11 +52,13 @@ class UnhandledViewIntentAnalyzer(
         reference.receiverName()?.let(semantic::referencedClass)?.to(reference.callableReference.getReferencedName())
       }
       .groupBy({ it.first }, { it.second })
-    val unhandled = handled.flatMap { (intents, names) -> intents.intentNames() - names.toSet() }
+    val unhandled = handled.flatMap { (intents, names) ->
+      (intents.intentNames() - names.toSet()).map { "${intents.name}.$it" }
+    }
     if (unhandled.isEmpty()) return null
     return KodeDiagnostic(
       "View intents are never handled in the machine of \"${klass.name}\": ${unhandled.joinToString()}",
-      machine,
+      machine.calleeExpression ?: machine,
     )
   }
 

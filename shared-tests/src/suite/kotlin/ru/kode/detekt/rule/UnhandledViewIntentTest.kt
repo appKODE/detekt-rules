@@ -23,8 +23,10 @@ class UnhandledViewIntentTest : ShouldSpec({
 
     val finding = UnhandledViewIntent().lintWithContext(environment, code).single()
 
-    finding.message shouldBe "View intents are never handled in the machine of \"MainViewModel\": onItemClick, onBack"
+    finding.message shouldBe
+      "View intents are never handled in the machine of \"MainViewModel\": Intents.onItemClick, Intents.onBack"
     finding.shouldStartAt(code, "machine {")
+    finding.entity.location.text.run { end - start } shouldBe "machine".length
   }
 
   should("count references made outside the machine call, and report nested view models on their own") {
@@ -51,9 +53,32 @@ class UnhandledViewIntentTest : ShouldSpec({
     val findings = UnhandledViewIntent().lintWithContext(environment, code)
 
     findings.map { it.message } shouldContainExactlyInAnyOrder listOf(
-      "View intents are never handled in the machine of \"Nested\": onRefresh, onBack",
-      "View intents are never handled in the machine of \"MainViewModel\": onItemClick",
+      "View intents are never handled in the machine of \"Nested\": Intents.onRefresh, Intents.onBack",
+      "View intents are never handled in the machine of \"MainViewModel\": Intents.onItemClick",
     )
+  }
+
+  should("name the intents class of each unhandled intent when the machine refers to several") {
+    val code = """
+      $STUBS
+      class DialogIntents : ViewIntents() {
+        val onConfirm = intent("confirm")
+        val onBack = intent("back")
+      }
+
+      class MainViewModel {
+        fun buildMachine() = machine {
+          onEach(intent(Intents::onRefresh))
+          onEach(intent(Intents::onItemClick))
+          onEach(intent(DialogIntents::onConfirm))
+        }
+      }
+    """.trimIndent()
+
+    val finding = UnhandledViewIntent().lintWithContext(environment, code).single()
+
+    finding.message shouldBe
+      "View intents are never handled in the machine of \"MainViewModel\": Intents.onBack, DialogIntents.onBack"
   }
 
   should("not report when every intent is handled") {
