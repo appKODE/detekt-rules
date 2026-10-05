@@ -101,6 +101,19 @@ class UnusedLetResultTest : ShouldSpec({
     UnusedLetResult().lint(code).shouldBeEmpty()
   }
 
+  should("report a let call that is not the last statement of a lambda") {
+    val code = """
+      fun show(errors: List<String?>) {
+        errors.forEach {
+          it?.let { error -> println(error) }
+          println("done")
+        }
+      }
+    """.trimIndent()
+
+    UnusedLetResult().lint(code).single().shouldStartAt(code, "let {")
+  }
+
   should("not report the last statement of a lambda") {
     val code = """
       fun show(errors: List<String?>) {
