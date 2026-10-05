@@ -214,6 +214,8 @@ class KodeSemanticContractTest : ShouldSpec({
       "rNested" to "Nested",
       "rQualified" to "Intents",
       "rObject" to null,
+      "rEnumEntry" to null,
+      "rCompanion" to "WithCompanion",
       "rAlias" to null,
       "rProperty" to null,
       "rInstance" to null,
@@ -399,6 +401,11 @@ private val REFERENCE_FIXTURE =
       class Nested { val onOpen = 2 }
     }
     object Holder { val value = 3 }
+    enum class Mode { On }
+    class WithCompanion {
+      val onTap = 5
+      companion object { val shared = 6 }
+    }
     typealias Alias = Intents
     val top = 4
     val instance = Intents()
@@ -407,6 +414,8 @@ private val REFERENCE_FIXTURE =
     val rNested = Intents.Nested::onOpen
     val rQualified = references.Intents::onClick
     val rObject = Holder::value
+    val rEnumEntry = Mode.On::name
+    val rCompanion = WithCompanion::onTap
     val rAlias = Alias::onClick
     val rProperty = ::top
     val rInstance = instance::onClick

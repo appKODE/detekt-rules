@@ -27,8 +27,8 @@ interface KodeSemantic {
 
   /**
    * The class [reference] refers to (`Intents` in `Intents::onClick`), when it is declared in the analyzed sources;
-   * null when the reference is unresolved, refers to anything else (an object, a property, a type alias...) or to
-   * a class of a library.
+   * null when the reference is unresolved, refers to anything else (an object, an enum entry, a property, a type
+   * alias...) or to a class of a library.
    */
   fun referencedClass(reference: KtNameReferenceExpression): KtClass?
 }

@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtEnumEntry
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
@@ -79,4 +80,5 @@ internal class BindingContextKodeSemantic(
   override fun referencedClass(reference: KtNameReferenceExpression): KtClass? =
     (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
       ?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
+      ?.takeUnless { it is KtEnumEntry }
 }
