@@ -3,6 +3,7 @@ package ru.kode.detekt.rule
 import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeIn
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.string.shouldStartWith
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -199,7 +200,7 @@ class KodeSemanticContractTest : ShouldSpec({
     )
   }
 
-  should("resolve a name reference to the source class it refers to") {
+  fun <T> referenceAnswers(ask: KodeSemantic.(KtNameReferenceExpression) -> T): Map<String, T> =
     withKodeSemantic(environment, REFERENCE_FIXTURE) { semantic, file ->
       file.collectDescendantsOfType<KtCallableReferenceExpression>().associate { reference ->
         val name = when (val receiver = reference.receiverExpression) {
@@ -207,21 +208,32 @@ class KodeSemanticContractTest : ShouldSpec({
           null -> reference.callableReference
           else -> receiver
         } as KtNameReferenceExpression
-        (reference.parent as KtProperty).name!! to semantic.referencedClass(name)?.name
+        (reference.parent as KtProperty).name!! to semantic.ask(name)
       }
-    } shouldContainExactly mapOf(
+    }
+
+  should("resolve a name reference to the source class it refers to") {
+    referenceAnswers { referencedClass(it)?.name } shouldContainExactly mapOf(
       "rClass" to "Intents",
       "rNested" to "Nested",
       "rQualified" to "Intents",
       "rObject" to null,
+      "rNestedObject" to null,
       "rEnumEntry" to null,
       "rCompanion" to "WithCompanion",
+      "rCompanionObject" to null,
       "rAlias" to null,
       "rProperty" to null,
       "rInstance" to null,
       "rLibrary" to null,
+      "rLibraryObject" to null,
       "rUnresolved" to null,
     )
+  }
+
+  should("tell a reference to an object declaration from any other reference") {
+    referenceAnswers { isObjectReference(it) }.filterValues { it }.keys shouldContainExactly
+      setOf("rObject", "rNestedObject", "rLibraryObject")
   }
 })
 
@@ -405,6 +417,7 @@ private val REFERENCE_FIXTURE =
     class WithCompanion {
       val onTap = 5
       companion object { val shared = 6 }
+      object Inside
     }
     typealias Alias = Intents
     val top = 4
@@ -416,9 +429,12 @@ private val REFERENCE_FIXTURE =
     val rObject = Holder::value
     val rEnumEntry = Mode.On::name
     val rCompanion = WithCompanion::onTap
+    val rCompanionObject = WithCompanion.Companion::shared
     val rAlias = Alias::onClick
     val rProperty = ::top
     val rInstance = instance::onClick
+    val rNestedObject = WithCompanion.Inside::hashCode
     val rLibrary = String::length
+    val rLibraryObject = Unit::toString
     val rUnresolved = Missing::value
   """.trimIndent()

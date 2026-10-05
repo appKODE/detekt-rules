@@ -31,4 +31,11 @@ interface KodeSemantic {
    * alias...) or to a class of a library.
    */
   fun referencedClass(reference: KtNameReferenceExpression): KtClass?
+
+  /**
+   * Whether [reference] refers to an `object` declaration (`Loading` in `State.Loading`), of the analyzed sources or
+   * of a library. A companion object referred to by the name of its class, an enum entry, a property and an
+   * unresolved reference are not objects.
+   */
+  fun isObjectReference(reference: KtNameReferenceExpression): Boolean
 }

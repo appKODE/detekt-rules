@@ -59,4 +59,18 @@ class NoTypeResolutionTest : ShouldSpec({
 
     UnhandledViewIntent().lint(code).shouldBeEmpty()
   }
+
+  should("skip the check without type resolution: InconsistentWhenTypeCheck") {
+    val code = """
+      object Loading
+
+      fun render(state: Any) = when (state) {
+        is String -> 1
+        Loading -> 2
+        else -> 3
+      }
+    """.trimIndent()
+
+    InconsistentWhenTypeCheck().lint(code).shouldBeEmpty()
+  }
 })

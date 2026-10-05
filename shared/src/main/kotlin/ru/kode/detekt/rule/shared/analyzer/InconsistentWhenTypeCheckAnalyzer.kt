@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.psi.KtWhenConditionIsPattern
 import org.jetbrains.kotlin.psi.KtWhenConditionWithExpression
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import ru.kode.detekt.rule.shared.KodeDiagnostic
+import ru.kode.detekt.rule.shared.KodeSemantic
 
 /**
  * Reports a `when` over a type hierarchy that checks some branches with `is` and compares others to an object by
@@ -30,28 +31,25 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
  * }
  * ```
  *
- * Objects are recognised by name, so a PascalCase constant or enum entry (`Dp.Unspecified`, `Color.Red`) in such a
- * `when` is reported as well and needs a suppression.
+ * Only a reference that resolves to an `object` declaration is reported: a constant or an enum entry
+ * (`Dp.Unspecified`, `Color.Red`) cannot be checked with `is`.
  */
-class InconsistentWhenTypeCheckAnalyzer {
-  // An object is recognised by its PascalCase name; a PascalCase constant or enum entry (`Dp.Unspecified`,
-  // `Color.Red`) in a `when` that also has `is` branches is reported too and has to be suppressed. Resolve the
-  // reference to an object declaration if that gets noisy
-  private val objectName = Regex("[A-Z][A-Za-z0-9]*[a-z][A-Za-z0-9]*")
-
+class InconsistentWhenTypeCheckAnalyzer(
+  private val semantic: KodeSemantic,
+) {
   fun analyze(expression: KtWhenExpression): List<KodeDiagnostic> {
     if (expression.subjectExpression == null) return emptyList()
     val conditions = expression.entries.flatMap { it.conditions.asList() }
     if (conditions.none { it is KtWhenConditionIsPattern }) return emptyList()
     return conditions.filterIsInstance<KtWhenConditionWithExpression>()
-      .filter { it.expression?.objectName()?.matches(objectName) == true }
+      .filter { it.expression?.lastName()?.let(semantic::isObjectReference) == true }
       .map { KodeDiagnostic("Use \"is ${it.text}\" like the other branches of this \"when\" do", it) }
   }
 
   /** Last segment of a plain name or of a chain of plain names, null for anything else. */
-  private fun KtExpression.objectName(): String? = when (this) {
-    is KtNameReferenceExpression -> getReferencedName()
-    is KtDotQualifiedExpression -> selectorExpression?.takeIf { receiverExpression.objectName() != null }?.objectName()
+  private fun KtExpression.lastName(): KtNameReferenceExpression? = when (this) {
+    is KtNameReferenceExpression -> this
+    is KtDotQualifiedExpression -> selectorExpression?.takeIf { receiverExpression.lastName() != null }?.lastName()
     else -> null
   }
 }

@@ -65,6 +65,10 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
     ((reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.psi as? KtClass)
       ?.takeUnless { it.containingKtFile.isCompiled }
   }
+
+  override fun isObjectReference(reference: KtNameReferenceExpression): Boolean = analyze(reference) {
+    (reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.classKind == KaClassKind.OBJECT
+  }
 }
 
 /** Renders [type] like detekt1's (K1) `KotlinType.toString()`. */

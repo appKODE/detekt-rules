@@ -7,7 +7,7 @@ Nine new rules. All of them are inactive by default: enable the ones you need in
 * `NullableValueClassProperty`: a value class wrapping a nullable type
 * `ConstantsNotAtBottom`: `const val`s declared above other declarations of a file, or in a companion object that is
   not the last declaration of its class
-* `InconsistentWhenTypeCheck`: a `when` mixing `is` checks with equality checks of objects
+* `InconsistentWhenTypeCheck`: a `when` mixing `is` checks with equality checks of objects (needs type resolution)
 * `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects
 * `UnusedLetResult`: a `let { }` call used as a statement
 * `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it

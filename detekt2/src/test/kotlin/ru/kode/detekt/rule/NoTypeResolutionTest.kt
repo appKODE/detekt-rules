@@ -41,4 +41,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: InconsistentWhenTypeCheck") {
+    val error = shouldThrow<IllegalArgumentException> {
+      InconsistentWhenTypeCheck().lint("fun render() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

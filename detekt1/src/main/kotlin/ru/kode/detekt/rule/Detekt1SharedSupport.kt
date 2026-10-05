@@ -8,6 +8,7 @@ import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
@@ -81,4 +82,10 @@ internal class BindingContextKodeSemantic(
     (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
       ?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
       ?.takeUnless { it is KtEnumEntry }
+
+  override fun isObjectReference(reference: KtNameReferenceExpression): Boolean =
+    (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
+      // the name of a class used as a value refers to its companion object
+      ?.takeUnless { it.isCompanionObject }
+      ?.kind == ClassKind.OBJECT
 }
