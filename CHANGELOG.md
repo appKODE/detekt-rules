@@ -4,6 +4,10 @@
 
 Nine new rules. All of them are inactive by default: enable the ones you need in your detekt config.
 
+Six of them need type resolution (marked below). Those report nothing in a plain `detekt` task of detekt 1 and
+without `--analysis-mode full` on detekt 2, see "Type resolution" in the README. No rule of 2.0.0 changes its
+behaviour or its requirements.
+
 * `NullableValueClassProperty`: a value class wrapping a nullable type
 * `ConstantsNotAtBottom`: `const val`s declared above other declarations of a file, or in a companion object that is
   not the last declaration of its class
