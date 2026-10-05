@@ -96,6 +96,8 @@ kode:
 | `PublicSuspendFunctionInReactiveModel` | inactive | A public, non-`override` `suspend` function declared in a class derived (directly or not) from one of `baseClasses`. Needs type resolution | `baseClasses` (`['ReactiveModel']`): simple names of the reactive model base classes |
 | `UnhandledViewIntent` | inactive | A class that calls `machine` and refers to intents as `Intents::onRefresh`, when some property initialized with `intent(...)` of that intents class or of its superclasses is never referred to. A reference counts in the class itself, in its superclasses and in the functions they call, of any file; the intents classes to check are those the class itself and its superclasses refer to. One finding per class, put on the `machine` name and listing the unhandled intents as `Intents.onBack`. Needs type resolution | — |
 
+More detailed rule descriptions with code snippets can be found in the [Wiki](https://github.com/appKODE/detekt-rules/wiki).
+
 # Type resolution
 
 `BlockingSqlDelightCall`, `MissingTypeDeclaration`, `InconsistentWhenTypeCheck`, `SealedClassCouldBeEnum`,
