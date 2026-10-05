@@ -72,6 +72,20 @@ class InconsistentWhenTypeCheckTest : ShouldSpec({
     InconsistentWhenTypeCheck().lint(code).shouldBeEmpty()
   }
 
+  // a known limit: an object is recognised by its PascalCase name
+  should("report a PascalCase constant or enum entry next to an is-check") {
+    val code = """
+      fun describe(value: Any) = when (value) {
+        is String -> "text"
+        Dp.Unspecified -> "no size"
+        Color.Red -> "red"
+        else -> "other"
+      }
+    """.trimIndent()
+
+    InconsistentWhenTypeCheck().lint(code) shouldHaveSize 2
+  }
+
   should("not report a when without a subject") {
     val code = """
       fun render(state: Any) {

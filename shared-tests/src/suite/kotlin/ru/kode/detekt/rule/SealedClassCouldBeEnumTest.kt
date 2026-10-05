@@ -94,6 +94,26 @@ class SealedClassCouldBeEnumTest : ShouldSpec({
     SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
   }
 
+  // a known limit: inheritors are matched by the simple name of the supertype
+  should("not report a sealed type when a same-named sealed type of the file has a class inheritor") {
+    val code = """
+      class First {
+        sealed interface State {
+          object Loading : State
+          object Ready : State
+        }
+      }
+
+      class Second {
+        sealed interface State {
+          class Content(val items: List<String>) : State
+        }
+      }
+    """.trimIndent()
+
+    SealedClassCouldBeEnum().lint(code).shouldBeEmpty()
+  }
+
   should("not report a class that is not sealed") {
     val code = """
       interface Direction

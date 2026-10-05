@@ -32,7 +32,9 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
 class SealedClassCouldBeEnumAnalyzer {
   // Inheritors are searched in the same file and matched by the simple name of the supertype. A sealed type
   // with a non-object inheritor in another file is reported, a same-named type from another package can hide a
-  // finding. Needs a type-resolved inheritor search to be exact
+  // finding, and two same-named sealed types of one file (`First.State`, `Second.State`) share their inheritors, so
+  // neither is reported once one of them has a class inheritor. A sealed class that extends a class through `super()`
+  // calls of secondary constructors only is not excluded either. Needs a type-resolved inheritor search to be exact
   fun analyze(klass: KtClass): KodeDiagnostic? {
     if (!klass.hasModifier(KtTokens.SEALED_KEYWORD) || klass.typeParameters.isNotEmpty()) return null
     // an enum class cannot extend a class

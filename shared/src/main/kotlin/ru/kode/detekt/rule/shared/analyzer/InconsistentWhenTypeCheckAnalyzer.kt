@@ -29,10 +29,14 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
  *   is State.Loading -> showProgress()
  * }
  * ```
+ *
+ * Objects are recognised by name, so a PascalCase constant or enum entry (`Dp.Unspecified`, `Color.Red`) in such a
+ * `when` is reported as well and needs a suppression.
  */
 class InconsistentWhenTypeCheckAnalyzer {
-  // An object is recognised by its PascalCase name; a PascalCase constant or enum entry in a `when` that
-  // also has `is` branches is reported too. Resolve the reference to an object declaration if that gets noisy
+  // An object is recognised by its PascalCase name; a PascalCase constant or enum entry (`Dp.Unspecified`,
+  // `Color.Red`) in a `when` that also has `is` branches is reported too and has to be suppressed. Resolve the
+  // reference to an object declaration if that gets noisy
   private val objectName = Regex("[A-Z][A-Za-z0-9]*[a-z][A-Za-z0-9]*")
 
   fun analyze(expression: KtWhenExpression): List<KodeDiagnostic> {
