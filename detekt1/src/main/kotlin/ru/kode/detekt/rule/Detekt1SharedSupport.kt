@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
@@ -21,8 +22,10 @@ import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils
+import org.jetbrains.kotlin.resolve.calls.model.ArgumentMatch
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
@@ -111,10 +114,29 @@ internal class BindingContextKodeSemantic(
     .orEmpty()
     .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClassOrObject }
 
-  override fun isSuspendCall(call: KtCallExpression): Boolean = call.function()?.isSuspend == true
+  override fun isSuspendCall(call: KtCallExpression): Boolean {
+    val function = call.function()?.takeIf { it.isSuspend } ?: return false
+    val receivers = listOfNotNull(
+      function.containingDeclaration as? ClassDescriptor,
+      function.extensionReceiverParameter?.type?.constructor?.declarationDescriptor as? ClassDescriptor,
+    )
+    return receivers.none { receiver ->
+      receiver.getAllSuperClassifiers().any { it.annotations.hasAnnotation(restrictsSuspension) }
+    }
+  }
 
-  override fun isInlineCall(call: KtCallExpression): Boolean = call.function()?.isInline == true
+  override fun isInlinedArgument(call: KtCallExpression, argument: KtValueArgument): Boolean {
+    val resolved = call.getResolvedCall(bindingContext) ?: return false
+    val parameter = (resolved.getArgumentMapping(argument) as? ArgumentMatch)?.valueParameter ?: return false
+    return (resolved.resultingDescriptor as? FunctionDescriptor)?.isInline == true &&
+      !parameter.isNoinline &&
+      !parameter.isCrossinline
+  }
 
   private fun KtCallExpression.function(): FunctionDescriptor? =
     getResolvedCall(bindingContext)?.resultingDescriptor as? FunctionDescriptor
+
+  private companion object {
+    val restrictsSuspension = FqName("kotlin.coroutines.RestrictsSuspension")
+  }
 }

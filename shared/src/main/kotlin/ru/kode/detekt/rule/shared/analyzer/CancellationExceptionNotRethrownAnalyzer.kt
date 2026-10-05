@@ -4,8 +4,10 @@ import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCatchClause
 import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtThrowExpression
 import org.jetbrains.kotlin.psi.KtTryExpression
 import org.jetbrains.kotlin.psi.KtUserType
@@ -57,7 +59,8 @@ class CancellationExceptionNotRethrownAnalyzer(
   private val rethrowFunctions: List<String>,
 ) {
   // The caught type and the rethrow are matched by name, so a `throw e` under a condition that excludes
-  // cancellation counts as a rethrow. Resolve the caught type and the thrown expression to cover those
+  // cancellation, or in a lambda of the `catch` that is never run, counts as a rethrow. Resolve the caught type and
+  // the thrown expression to cover those
   fun analyze(expression: KtTryExpression): KodeDiagnostic? {
     val clause = expression.catchClauses.firstOrNull { it.caughtType() in cancellationTypes } ?: return null
     // cancellation never reaches the clauses below this one
@@ -71,26 +74,32 @@ class CancellationExceptionNotRethrownAnalyzer(
 
   /**
    * Whether the block calls a `suspend` function itself. Code that runs elsewhere than the block it is written in
-   * does not count: a local function, an object and a lambda, except a lambda passed to an inline function.
+   * does not count: a local function, an object, and a lambda or an anonymous function, except one that an inline
+   * function runs in place.
    */
-  // Only calls are suspension points here, so a `try` that suspends through an operator, a `for` over a
-  // channel or a delegated property alone is not reported, and a `crossinline` lambda counts as run in place.
-  // Resolve those like detekt's SuspendFunSwallowedCancellation does if they turn out to matter
+  // Only calls are suspension points here, so a `try` that suspends through an operator, an infix call, a
+  // `for` over a channel or a delegated property alone is not reported, and neither is one that suspends in the
+  // lambda of an infix call. Resolve those like detekt's SuspendFunSwallowedCancellation does if they turn out to
+  // matter
   private fun KtBlockExpression.suspends(): Boolean = anyDescendantOfType<KtCallExpression>(
     canGoInside = { element ->
       when (element) {
-        is KtNamedFunction, is KtClassOrObject -> false
-        is KtLambdaExpression -> element.isArgumentOfInlineCall()
+        is KtClassOrObject -> false
+        is KtLambdaExpression, is KtNamedFunction -> (element as KtExpression).isInlinedArgument()
         else -> true
       }
     },
     predicate = semantic::isSuspendCall,
   )
 
-  private fun KtLambdaExpression.isArgumentOfInlineCall(): Boolean = getStrictParentOfType<KtValueArgument>()
-    ?.takeIf { it.getArgumentExpression() == this }
-    ?.getStrictParentOfType<KtCallExpression>()
-    ?.let(semantic::isInlineCall) == true
+  private fun KtExpression.isInlinedArgument(): Boolean {
+    // a label, parentheses or an annotation can stand between the argument and its lambda
+    val argument = getStrictParentOfType<KtValueArgument>()
+      ?.takeIf { KtPsiUtil.deparenthesize(it.getArgumentExpression()) == this }
+      ?: return false
+    val call = argument.getStrictParentOfType<KtCallExpression>()?.takeIf { argument in it.valueArguments }
+    return call != null && semantic.isInlinedArgument(call, argument)
+  }
 
   private fun KtCatchClause.caughtType(): String? =
     (catchParameter?.typeReference?.typeElement as? KtUserType)?.referencedName

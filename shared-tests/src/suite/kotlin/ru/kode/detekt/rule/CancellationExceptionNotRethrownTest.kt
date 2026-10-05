@@ -85,6 +85,68 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
     CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 4
   }
 
+  should("report a suspending call made in a labeled or parenthesized lambda or in an anonymous function") {
+    val code = """
+      $STUBS
+      suspend fun load(items: List<Int>) {
+        try { items.forEach loop@{ fetch() } } catch (e: Exception) { }
+        try { items.forEach(({ fetch() })) } catch (e: Exception) { }
+        try { items.forEach(fun(item: Int) { fetch() }) } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 3
+  }
+
+  should("report a try around a nested try, with a finally block or calling a suspending invoke operator") {
+    val code = """
+      $STUBS
+      class Task { suspend operator fun invoke() {} }
+
+      suspend fun load(task: Task) {
+        try {
+          try { fetch() } catch (e: IOException) { }
+        } catch (e: Exception) { }
+        try { fetch() } catch (e: Exception) { } finally { log(Exception()) }
+        try { task() } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code) shouldHaveSize 3
+  }
+
+  should("not report a suspending call in a noinline or crossinline lambda of an inline function") {
+    val code = """
+      $STUBS
+      inline fun <T> wrap(crossinline block: suspend () -> T): Any = object { suspend fun run() = block() }
+      inline fun <T> keep(noinline block: suspend () -> T): Any = block
+
+      fun build() {
+        try { wrap { fetch() } } catch (e: Exception) { }
+        try { keep { fetch() } } catch (e: Exception) { }
+        try { keep(block = lazy@{ fetch() }) } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).shouldBeEmpty()
+  }
+
+  should("not report a try in a sequence or iterator builder") {
+    val code = """
+      $STUBS
+      fun numbers(raw: String) = sequence {
+        try { yield(parse(raw)) } catch (e: Exception) { }
+        try { yieldAll(listOf(1)) } catch (e: Exception) { }
+      }
+
+      fun letters(raw: String) = iterator {
+        try { yield(parse(raw)) } catch (e: Exception) { }
+      }
+    """.trimIndent()
+
+    CancellationExceptionNotRethrown().lintWithContext(environment, code).shouldBeEmpty()
+  }
+
   should("not report a try block that makes no suspending call itself") {
     val code = """
       $STUBS
@@ -99,6 +161,7 @@ class CancellationExceptionNotRethrownTest : ShouldSpec({
           }
         } catch (e: Exception) { }
         try { unknown() } catch (e: Exception) { }
+        try { parse(raw) } catch (e: Exception) { fetch() } finally { fetch() }
       }
 
       fun regular(raw: String) {

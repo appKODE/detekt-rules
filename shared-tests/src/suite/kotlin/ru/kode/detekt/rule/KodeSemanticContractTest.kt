@@ -4,12 +4,14 @@ import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.string.shouldStartWith
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtConstantExpression
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtProperty
@@ -273,11 +275,20 @@ class KodeSemanticContractTest : ShouldSpec({
     )
   }
 
-  should("tell a call of an inline function") {
-    suspendCallAnswers { isInlineCall(it) } shouldContainExactly setOf(
-      "inlined { pause() }",
-      "suspendInline { regular() }",
-      "repeat(2) { regular() }",
+  should("tell a lambda or an anonymous function that an inline function runs in place") {
+    withKodeSemantic(environment, SUSPEND_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().flatMap { call ->
+        call.valueArguments
+          .filter { it.getArgumentExpression() !is KtConstantExpression && semantic.isInlinedArgument(call, it) }
+          .map { "${call.calleeExpression?.text}: ${it.text}" }
+      }
+    } shouldContainExactlyInAnyOrder listOf(
+      "inlined: { pause() }",
+      "suspendInline: { regular() }",
+      "repeat: { regular() }",
+      "mixed: { 1 }",
+      "mixed: first = lab@{ 5 }",
+      "mixed: (fun(): Int = 9)",
     )
   }
 
@@ -579,9 +590,13 @@ private val SUSPEND_FIXTURE =
   """
     package suspending
 
+    import kotlin.coroutines.RestrictsSuspension
+
     suspend fun pause() {}
     fun regular() {}
     inline fun inlined(block: () -> Unit) = block()
+    inline fun mixed(first: () -> Int, noinline second: () -> Int, crossinline third: () -> Int, count: Int): Int =
+      first() + second() + count
     suspend inline fun suspendInline(block: () -> Unit) = block()
     fun later(block: suspend () -> Unit) {}
     class Worker {
@@ -589,6 +604,17 @@ private val SUSPEND_FIXTURE =
       suspend fun run() { member() }
     }
     suspend fun Worker.ext() {}
+    @RestrictsSuspension
+    open class Restricted {
+      suspend fun step() {}
+    }
+    class Generator : Restricted()
+    suspend fun Restricted.extended() {}
+    suspend fun Generator.generate() {
+      step()
+      extended()
+    }
+    fun numbers() = sequence { yield(1) }
 
     suspend fun probe(action: suspend () -> Unit, callback: () -> Unit, worker: Worker) {
       pause()
@@ -602,6 +628,10 @@ private val SUSPEND_FIXTURE =
       worker.ext()
       Worker()
       unknown()
+      mixed({ 1 }, { 2 }, { 3 }, 4)
+      mixed(first = lab@{ 5 }, second = lab@{ 6 }, third = ({ 7 }), count = 8)
+      mixed((fun(): Int = 9), fun(): Int = 10, fun(): Int = 11, 12)
+      unknown { 13 }
     }
   """.trimIndent()
 

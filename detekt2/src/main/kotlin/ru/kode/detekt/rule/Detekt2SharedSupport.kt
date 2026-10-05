@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
@@ -32,6 +33,8 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtPsiUtil
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.types.Variance
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -101,12 +104,34 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
       .mapNotNull { it.psi as? KtClassOrObject }
   }
 
-  override fun isSuspendCall(call: KtCallExpression): Boolean = analyze(call) { function(call)?.isSuspend == true }
+  override fun isSuspendCall(call: KtCallExpression): Boolean = analyze(call) {
+    val function = function(call)?.takeIf { it.isSuspend } ?: return@analyze false
+    val receivers = listOfNotNull(
+      function.containingDeclaration as? KaClassSymbol,
+      function.receiverParameter?.returnType?.symbol as? KaClassSymbol,
+    )
+    receivers.none { receiver ->
+      (receiver.defaultType.allSupertypes.mapNotNull { it.symbol } + receiver)
+        .any { restrictsSuspension in it.annotations }
+    }
+  }
 
-  override fun isInlineCall(call: KtCallExpression): Boolean = analyze(call) { function(call)?.isInline == true }
+  override fun isInlinedArgument(call: KtCallExpression, argument: KtValueArgument): Boolean = analyze(call) {
+    val resolved = call.resolveToCall()?.singleFunctionCallOrNull() ?: return@analyze false
+    val expression = KtPsiUtil.deparenthesize(argument.getArgumentExpression())
+    // a label or parentheses can wrap the argument, on either side of the mapping
+    val parameter = resolved.argumentMapping.entries
+      .firstOrNull { KtPsiUtil.deparenthesize(it.key) == expression }
+      ?.value
+      ?.symbol
+      ?: return@analyze false
+    (resolved.symbol as? KaNamedFunctionSymbol)?.isInline == true && !parameter.isNoinline && !parameter.isCrossinline
+  }
 
   private fun KaSession.function(call: KtCallExpression): KaNamedFunctionSymbol? =
     call.resolveToCall()?.singleFunctionCallOrNull()?.symbol as? KaNamedFunctionSymbol
+
+  private val restrictsSuspension = ClassId.fromString("kotlin/coroutines/RestrictsSuspension")
 }
 
 /** Renders [type] like detekt1's (K1) `KotlinType.toString()`. */

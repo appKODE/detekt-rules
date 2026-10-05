@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtValueArgument
 
 interface KodeSemantic {
   /** Simple names of the class itself plus all its transitive supertypes (classes and interfaces, incl. `Any`). */
@@ -69,10 +70,15 @@ interface KodeSemantic {
 
   /**
    * Whether [call] resolves to a `suspend` function, the `invoke` of a value of a suspend function type included
-   * (`action()` for `action: suspend () -> Unit`).
+   * (`action()` for `action: suspend () -> Unit`). A function of a class marked `@RestrictsSuspension`, or of a
+   * subclass of one, or an extension of it, does not count (`yield` in `sequence { }`): it suspends a generator, which
+   * nobody cancels.
    */
   fun isSuspendCall(call: KtCallExpression): Boolean
 
-  /** Whether [call] resolves to an `inline` function, so its lambda arguments run in the place of the call. */
-  fun isInlineCall(call: KtCallExpression): Boolean
+  /**
+   * Whether the lambda or anonymous function passed as [argument] of [call] runs in the place of the call: [call]
+   * resolves to an `inline` function and the parameter of [argument] is neither `noinline` nor `crossinline`.
+   */
+  fun isInlinedArgument(call: KtCallExpression, argument: KtValueArgument): Boolean
 }
