@@ -166,6 +166,82 @@ class UnhandledViewIntentTest : ShouldSpec({
       "View intents are never handled in the machine of \"LonelyViewModel\": Intents.onItemClick, Intents.onBack"
   }
 
+  should("not require the intents of a class that only a called function refers to") {
+    val code = """
+      $STUBS
+      class MainViewModel {
+        fun buildMachine() = machine {
+          analytics()
+          onEach(intent(Intents::onRefresh))
+          onEach(intent(Intents::onItemClick))
+          configureBack()
+        }
+      }
+
+      class DerivedViewModel : BaseViewModel() {
+        fun buildMachine() = machine {
+          onEach(intent(Intents::onRefresh))
+          onEach(intent(Intents::onItemClick))
+          onEach(intent(Intents::onBack))
+        }
+      }
+    """.trimIndent()
+    val helpers = """
+      package screen
+
+      class CommonIntents : ViewIntents() {
+        val onRetry = intent("retry")
+        val onClose = intent("close")
+      }
+
+      open class BaseViewModel {
+        fun configureCommon() {
+          onEach(intent(CommonIntents::onRetry))
+        }
+      }
+
+      fun analytics() = CommonIntents::onRetry
+      fun configureBack() {
+        onEach(intent(Intents::onBack))
+      }
+    """.trimIndent()
+
+    val finding = UnhandledViewIntent().lintWithContext(environment, code, helpers).single()
+
+    finding.message shouldBe
+      "View intents are never handled in the machine of \"DerivedViewModel\": CommonIntents.onClose"
+  }
+
+  should("follow functions that call each other") {
+    val code = """
+      $STUBS
+      class MainViewModel {
+        fun buildMachine() = machine {
+          onEach(intent(Intents::onRefresh))
+          first()
+        }
+
+        fun first() {
+          onEach(intent(Intents::onItemClick))
+          second()
+        }
+      }
+
+      fun MainViewModel.second() {
+        first()
+        third()
+      }
+
+      fun MainViewModel.third() {
+        second()
+      }
+    """.trimIndent()
+
+    val finding = UnhandledViewIntent().lintWithContext(environment, code).single()
+
+    finding.message shouldBe "View intents are never handled in the machine of \"MainViewModel\": Intents.onBack"
+  }
+
   should("not report when every intent is handled") {
     val code = """
       $STUBS
