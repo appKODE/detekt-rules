@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
 
 interface KodeSemantic {
   /** Simple names of the class itself plus all its transitive supertypes (classes and interfaces, incl. `Any`). */
@@ -40,6 +41,18 @@ interface KodeSemantic {
    * unresolved reference are not objects.
    */
   fun isObjectReference(reference: KtNameReferenceExpression): Boolean
+
+  /**
+   * The classes and interfaces [klass] inherits from, directly or not, that are declared in the analyzed sources, in
+   * whatever file.
+   */
+  fun sourceSuperClasses(klass: KtClass): List<KtClass>
+
+  /**
+   * The function [call] resolves to, when it is declared in the analyzed sources, in whatever file; null for an
+   * unresolved call, a constructor, a call of a function value or a function of a library.
+   */
+  fun calledFunction(call: KtCallExpression): KtNamedFunction?
 
   /**
    * Whether the lambda [literal] returns `Unit`, so the value of its last statement is discarded: its expected type

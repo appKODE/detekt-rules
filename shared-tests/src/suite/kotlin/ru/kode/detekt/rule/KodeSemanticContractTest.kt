@@ -281,6 +281,34 @@ class KodeSemanticContractTest : ShouldSpec({
     )
   }
 
+  should("list the source superclasses of a class, of every file") {
+    withKodeSemantic(environment, HIERARCHY_FIXTURE, HIERARCHY_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtClass>().associate { klass ->
+        klass.name!! to semantic.sourceSuperClasses(klass).map { it.name }.sortedBy { it }
+      }
+    } shouldContainExactly mapOf(
+      "Leaf" to listOf("Marker", "Middle", "Root"),
+      "Middle" to listOf("Root"),
+      "Alone" to emptyList(),
+      "Broken" to emptyList(),
+    )
+  }
+
+  should("resolve a call to the source function it calls, of every file") {
+    withKodeSemantic(environment, HIERARCHY_FIXTURE, HIERARCHY_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().associate { it.text to semantic.calledFunction(it)?.name }
+    } shouldContainExactly mapOf(
+      "own()" to "own",
+      "inherited()" to "inherited",
+      "extension()" to "extension",
+      "topLevel()" to "topLevel",
+      "listOf(1)" to null,
+      "Alone()" to null,
+      "callback()" to null,
+      "missing()" to null,
+    )
+  }
+
   should("list the direct inheritors of a sealed class, of every file") {
     withKodeSemantic(environment, SEALED_FIXTURE, SEALED_FIXTURE_OTHER_FILE) { semantic, file ->
       file.collectDescendantsOfType<KtClass>().associate { klass ->
@@ -575,4 +603,41 @@ private val SUSPEND_FIXTURE =
       Worker()
       unknown()
     }
+  """.trimIndent()
+
+// language=kotlin
+private val HIERARCHY_FIXTURE =
+  """
+    package hierarchy
+
+    open class Middle : Root()
+    class Leaf : Middle(), Marker, Comparable<Leaf> {
+      override fun compareTo(other: Leaf): Int = 0
+      fun own() {}
+      fun probe(callback: () -> Unit) {
+        own()
+        inherited()
+        extension()
+        topLevel()
+        listOf(1)
+        Alone()
+        callback()
+        missing()
+      }
+    }
+    class Alone
+    class Broken : Missing()
+  """.trimIndent()
+
+// language=kotlin
+private val HIERARCHY_FIXTURE_OTHER_FILE =
+  """
+    package hierarchy
+
+    open class Root {
+      fun inherited() {}
+    }
+    interface Marker
+    fun Leaf.extension() {}
+    fun topLevel() {}
   """.trimIndent()

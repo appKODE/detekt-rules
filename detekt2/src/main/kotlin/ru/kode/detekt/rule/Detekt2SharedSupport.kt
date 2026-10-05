@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.types.Variance
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -69,6 +70,17 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
     // a library class can have a decompiled PSI: detekt1 has none for it
     ((reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.psi as? KtClass)
       ?.takeUnless { it.containingKtFile.isCompiled }
+  }
+
+  override fun sourceSuperClasses(klass: KtClass): List<KtClass> = analyze(klass) {
+    klass.classSymbol?.defaultType?.allSupertypes.orEmpty()
+      .mapNotNull { it.symbol?.psi as? KtClass }
+      .filterNot { it.containingKtFile.isCompiled }
+      .toList()
+  }
+
+  override fun calledFunction(call: KtCallExpression): KtNamedFunction? = analyze(call) {
+    (function(call)?.psi as? KtNamedFunction)?.takeUnless { it.containingKtFile.isCompiled }
   }
 
   override fun isObjectReference(reference: KtNameReferenceExpression): Boolean = analyze(reference) {

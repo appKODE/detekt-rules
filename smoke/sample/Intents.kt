@@ -22,3 +22,23 @@ class ScreenViewModel {
     }
   }
 }
+
+open class BaseScreenIntents {
+  val onClose: Int = intent()
+
+  protected fun intent(): Int = 0
+}
+
+class DetailsIntents : BaseScreenIntents() {
+  val onSubmit: Int = intent()
+  val onHelp: Int = intent()
+}
+
+class DetailsViewModel {
+  fun buildMachine() {
+    machine {
+      handle(DetailsIntents::onSubmit)
+      configureHelp()
+    }
+  }
+}

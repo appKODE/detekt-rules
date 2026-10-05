@@ -81,6 +81,91 @@ class UnhandledViewIntentTest : ShouldSpec({
       "View intents are never handled in the machine of \"MainViewModel\": Intents.onBack, DialogIntents.onBack"
   }
 
+  should("require the intents that the intents class inherits") {
+    val code = """
+      $STUBS
+      class MainViewModel {
+        fun buildMachine() = machine {
+          onEach(intent(ScreenIntents::onSubmit))
+          onEach(intent(BaseIntents::onClose))
+        }
+      }
+
+      class OtherViewModel {
+        fun buildMachine() = machine {
+          onEach(intent(ScreenIntents::onSubmit))
+          onEach(intent(ScreenIntents::onClose))
+          onEach(intent(ScreenIntents::onHelp))
+        }
+      }
+    """.trimIndent()
+    val intents = """
+      package screen
+
+      open class BaseIntents : ViewIntents() {
+        val onClose = intent("close")
+        val onHelp = intent("help")
+      }
+
+      class ScreenIntents : BaseIntents() {
+        val onSubmit = intent("submit")
+      }
+    """.trimIndent()
+
+    val finding = UnhandledViewIntent().lintWithContext(environment, code, intents).single()
+
+    finding.message shouldBe "View intents are never handled in the machine of \"MainViewModel\": ScreenIntents.onHelp"
+  }
+
+  should("count the references of a superclass and of the functions the view model calls, of any file") {
+    val code = """
+      $STUBS
+      class MainViewModel : BaseViewModel() {
+        fun buildMachine() = machine {
+          configureList()
+        }
+      }
+
+      class LonelyViewModel {
+        fun buildMachine() = machine {
+          onEach(intent(Intents::onRefresh))
+          Helper().unrelated()
+        }
+      }
+    """.trimIndent()
+    val helpers = """
+      package screen
+
+      open class BaseViewModel {
+        fun configureNavigation() {
+          onEach(intent(Intents::onBack))
+        }
+      }
+
+      fun MainViewModel.configureList() {
+        onEach(intent(Intents::onRefresh))
+        configureItems()
+        configureList()
+      }
+
+      fun configureItems() {
+        onEach(intent(Intents::onItemClick))
+      }
+
+      class Helper {
+        fun unrelated() {}
+        fun handle() {
+          onEach(intent(Intents::onBack))
+        }
+      }
+    """.trimIndent()
+
+    val finding = UnhandledViewIntent().lintWithContext(environment, code, helpers).single()
+
+    finding.message shouldBe
+      "View intents are never handled in the machine of \"LonelyViewModel\": Intents.onItemClick, Intents.onBack"
+  }
+
   should("not report when every intent is handled") {
     val code = """
       $STUBS

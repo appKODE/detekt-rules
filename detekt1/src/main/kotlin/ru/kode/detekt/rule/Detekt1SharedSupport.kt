@@ -87,6 +87,16 @@ internal class BindingContextKodeSemantic(
       ?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
       ?.takeUnless { it is KtEnumEntry }
 
+  override fun sourceSuperClasses(klass: KtClass): List<KtClass> = bindingContext[BindingContext.CLASS, klass]
+    ?.getAllSuperClassifiers()
+    .orEmpty()
+    .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
+    .filter { it != klass }
+    .toList()
+
+  override fun calledFunction(call: KtCallExpression): KtNamedFunction? =
+    call.function()?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtNamedFunction }
+
   override fun isObjectReference(reference: KtNameReferenceExpression): Boolean =
     (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
       // the name of a class used as a value refers to its companion object
