@@ -57,8 +57,8 @@ interface KodeSemantic {
 
   /**
    * Whether the lambda [literal] returns `Unit`, so the value of its last statement is discarded: its expected type
-   * says so (`forEach { }`, `val action: () -> Unit = { }`) or it is inferred from the last statement. A lambda whose
-   * type is not resolved does not return `Unit`.
+   * says so (`forEach { }`, `val action: () -> Unit = { }`) or it is inferred from the last statement, which is also
+   * how the lambda of an unresolved call is typed.
    */
   fun returnsUnit(literal: KtFunctionLiteral): Boolean
 

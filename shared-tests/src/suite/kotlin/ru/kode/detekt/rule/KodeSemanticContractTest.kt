@@ -258,7 +258,8 @@ class KodeSemanticContractTest : ShouldSpec({
       "lParameterValue" to false,
       "lGenericValue" to false,
       "lNullableUnit" to false,
-      "lUnresolved" to false,
+      "lUnresolvedUnit" to true,
+      "lUnresolvedValue" to false,
     )
   }
 
@@ -561,7 +562,8 @@ private val LAMBDA_FIXTURE =
     val lParameterValue = listOf(1).map { it.toString() }
     val lGenericValue = run { 1 }
     val lNullableUnit = run { null as Unit? }
-    val lUnresolved = unknown { 1 }
+    val lUnresolvedUnit = unknown { println() }
+    val lUnresolvedValue = unknown { 1 }
   """.trimIndent()
 
 // language=kotlin
