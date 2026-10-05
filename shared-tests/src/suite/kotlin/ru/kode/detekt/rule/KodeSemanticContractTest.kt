@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
@@ -235,6 +236,27 @@ class KodeSemanticContractTest : ShouldSpec({
     referenceAnswers { isObjectReference(it) }.filterValues { it }.keys shouldContainExactly
       setOf("rObject", "rNestedObject", "rLibraryObject")
   }
+
+  should("tell a lambda that returns Unit from a lambda that returns a value") {
+    withKodeSemantic(environment, LAMBDA_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtProperty>().associate {
+        it.name!! to semantic.returnsUnit(it.collectDescendantsOfType<KtFunctionLiteral>().first())
+      }
+    } shouldContainExactly mapOf(
+      "lExpectedUnit" to true,
+      "lSuspendUnit" to true,
+      "lParameterUnit" to true,
+      "lJavaUnit" to true,
+      "lInferredUnit" to true,
+      "lEmpty" to true,
+      "lGenericUnit" to true,
+      "lInt" to false,
+      "lParameterValue" to false,
+      "lGenericValue" to false,
+      "lNullableUnit" to false,
+      "lUnresolved" to false,
+    )
+  }
 })
 
 private val UNRESOLVED = setOf("pUnresolved", "pUnresolvedType", "pFunUnresolved")
@@ -437,4 +459,23 @@ private val REFERENCE_FIXTURE =
     val rLibrary = String::length
     val rLibraryObject = Unit::toString
     val rUnresolved = Missing::value
+  """.trimIndent()
+
+// language=kotlin
+private val LAMBDA_FIXTURE =
+  """
+    package lambdas
+
+    val lExpectedUnit: () -> Unit = { 1 }
+    val lSuspendUnit: suspend () -> Unit = { 1 }
+    val lParameterUnit = listOf(1).forEach { it.toString() }
+    val lJavaUnit = Thread { 1 }
+    val lInferredUnit = { println() }
+    val lEmpty = {}
+    val lGenericUnit = run { println() }
+    val lInt = { 1 }
+    val lParameterValue = listOf(1).map { it.toString() }
+    val lGenericValue = run { 1 }
+    val lNullableUnit = run { null as Unit? }
+    val lUnresolved = unknown { 1 }
   """.trimIndent()

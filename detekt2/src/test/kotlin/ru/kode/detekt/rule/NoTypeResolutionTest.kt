@@ -49,4 +49,12 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: UnusedLetResult") {
+    val error = shouldThrow<IllegalArgumentException> {
+      UnusedLetResult().lint("fun show() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

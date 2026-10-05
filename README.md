@@ -90,7 +90,7 @@ kode:
 | `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
 | `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified name that resolves to an `object` declaration. Constants, enum entries and companion objects are not reported. Needs type resolution | — |
 | `SealedClassCouldBeEnum` | inactive | A sealed class or interface without type parameters and without a superclass whose inheritors (at least two, searched in the same file) are all objects with no state of their own. Inheritors are matched by the simple name of the supertype, so same-named sealed types in one file share them | — |
-| `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement). The last statement of a lambda is never reported | — |
+| `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement, and as the last statement of a lambda that returns `Unit`, like `forEach { it?.let { } }`). Needs type resolution | — |
 | `CoroutineScopeNotCancelled` | inactive | A class property initialized with `CoroutineScope(...)` or `MainScope()` when the class itself (not a nested class) has no `cancel` call on it (`scope.cancel()`, `scope.coroutineContext[Job]?.cancel()`, or `job.cancel()` for `CoroutineScope(job)`). Cancelling the result of a call (`scope.launch { }.cancel()`) does not count. Objects are skipped: they live as long as the process | — |
 | `CancellationExceptionNotRethrown` | inactive | In a `suspend` function, a `catch` of `CancellationException`, `Throwable`, `Exception`, `RuntimeException` or `IllegalStateException` that neither rethrows the caught exception nor calls `ensureActive()`, unless an earlier `catch (e: CancellationException)` rethrows. Types are matched by name and suspension points are not looked for, so a `try` around non-suspending code is reported too; regular functions nested in the `suspend` function are skipped. On detekt 2 prefer the stock `SuspendFunSwallowedCancellation`, which resolves types | `rethrowFunctions` (`[]`): names of functions whose call in the `catch` counts as a rethrow |
 | `PublicSuspendFunctionInReactiveModel` | inactive | A public, non-`override` `suspend` function declared in a class derived (directly or not) from one of `baseClasses`. Needs type resolution | `baseClasses` (`['ReactiveModel']`): simple names of the reactive model base classes |
@@ -98,7 +98,7 @@ kode:
 
 # Type resolution
 
-`BlockingSqlDelightCall`, `MissingTypeDeclaration`, `InconsistentWhenTypeCheck`,
+`BlockingSqlDelightCall`, `MissingTypeDeclaration`, `InconsistentWhenTypeCheck`, `UnusedLetResult`,
 `PublicSuspendFunctionInReactiveModel` and `UnhandledViewIntent`
 need type information; the other rules work on syntax only.
 

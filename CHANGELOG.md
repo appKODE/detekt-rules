@@ -9,7 +9,7 @@ Nine new rules. All of them are inactive by default: enable the ones you need in
   not the last declaration of its class
 * `InconsistentWhenTypeCheck`: a `when` mixing `is` checks with equality checks of objects (needs type resolution)
 * `SealedClassCouldBeEnum`: a sealed class or interface whose inheritors are all stateless objects
-* `UnusedLetResult`: a `let { }` call used as a statement
+* `UnusedLetResult`: a `let { }` call used as a statement (needs type resolution)
 * `CoroutineScopeNotCancelled`: a class that creates a coroutine scope and never cancels it
 * `CancellationExceptionNotRethrown`: a `catch` of `CancellationException` or of a broad type in a `suspend` function
   that swallows `CancellationException`.

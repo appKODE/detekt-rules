@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtTryExpression
 import org.jetbrains.kotlin.psi.KtWhenEntry
 import ru.kode.detekt.rule.shared.KodeDiagnostic
+import ru.kode.detekt.rule.shared.KodeSemantic
 
 /**
  * Reports a `let { }` call used as a statement: `let` exists to transform its receiver, a call made for side effects
@@ -39,8 +40,11 @@ import ru.kode.detekt.rule.shared.KodeDiagnostic
  *   if (error != null) showSnackbar(error.message)
  * }
  * ```
+ *
+ * The last statement of a lambda is reported when the lambda returns `Unit` (`forEach { it?.let { } }`), which takes
+ * type resolution to know.
  */
-class UnusedLetResultAnalyzer {
+class UnusedLetResultAnalyzer(private val semantic: KodeSemantic) {
   fun analyze(call: KtCallExpression): KodeDiagnostic? {
     if ((call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() != "let") return null
     if (call.lambdaArguments.isEmpty()) return null
@@ -53,9 +57,7 @@ class UnusedLetResultAnalyzer {
   private fun KtExpression.isStatement(): Boolean = when (val parent = parent) {
     is KtBlockExpression -> parent.statements.last() != this || parent.isStatement()
 
-    // The last statement of a lambda may be its result, and whether the lambda returns Unit is not known
-    // without types, so it is never reported. Resolve the lambda's return type to cover `forEach { it?.let { } }`
-    is KtFunctionLiteral -> false
+    is KtFunctionLiteral -> semantic.returnsUnit(parent)
 
     is KtDeclarationWithBody, is KtAnonymousInitializer, is KtFinallySection -> this is KtBlockExpression
 

@@ -3,6 +3,7 @@ package ru.kode.detekt.rule.shared
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 
 interface KodeSemantic {
@@ -38,4 +39,11 @@ interface KodeSemantic {
    * unresolved reference are not objects.
    */
   fun isObjectReference(reference: KtNameReferenceExpression): Boolean
+
+  /**
+   * Whether the lambda [literal] returns `Unit`, so the value of its last statement is discarded: its expected type
+   * says so (`forEach { }`, `val action: () -> Unit = { }`) or it is inferred from the last statement. A lambda whose
+   * type is not resolved does not return `Unit`.
+   */
+  fun returnsUnit(literal: KtFunctionLiteral): Boolean
 }

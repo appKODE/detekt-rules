@@ -17,6 +17,7 @@ Flows.kt:15:49 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Flows.kt:15:71 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Intents.kt:20:5 UnhandledViewIntent View intents are never handled in the machine of &quot;ScreenViewModel&quot;: ScreenIntents.onBack
 LetCalls.kt:4:9 UnusedLetResult Result of &quot;let&quot; is not used: use an &quot;if&quot; check or &quot;also&quot; instead
+LetCalls.kt:11:11 UnusedLetResult Result of &quot;let&quot; is not used: use an &quot;if&quot; check or &quot;also&quot; instead
 Models.kt:6:3 PublicSuspendFunctionInReactiveModel Reactive model &quot;AccountModel&quot; should not expose public suspend function &quot;load&quot;: make it a task or make it private
 Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead

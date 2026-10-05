@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.types.Variance
 import ru.kode.detekt.rule.shared.KodeDiagnostic
@@ -68,6 +69,11 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
 
   override fun isObjectReference(reference: KtNameReferenceExpression): Boolean = analyze(reference) {
     (reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.classKind == KaClassKind.OBJECT
+  }
+
+  override fun returnsUnit(literal: KtFunctionLiteral): Boolean = analyze(literal) {
+    // `isUnitType` holds for `Unit?` too
+    literal.symbol.returnType.let { it.isUnitType && !it.isMarkedNullable }
   }
 }
 

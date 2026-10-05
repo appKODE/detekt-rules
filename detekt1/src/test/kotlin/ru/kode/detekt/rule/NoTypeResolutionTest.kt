@@ -73,4 +73,14 @@ class NoTypeResolutionTest : ShouldSpec({
 
     InconsistentWhenTypeCheck().lint(code).shouldBeEmpty()
   }
+
+  should("skip the check without type resolution: UnusedLetResult") {
+    val code = """
+      fun show(error: String?) {
+        error?.let { println(it) }
+      }
+    """.trimIndent()
+
+    UnusedLetResult().lint(code).shouldBeEmpty()
+  }
 })

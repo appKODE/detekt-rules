@@ -1,12 +1,15 @@
 package ru.kode.detekt.rule
 
-import dev.detekt.test.lint
+import dev.detekt.test.lintWithContext
+import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 
 class UnusedLetResultTest : ShouldSpec({
+  val environment = createEnvironment()
+
   should("report a let call used as a statement") {
     val code = """
       fun show(error: String?) {
@@ -15,7 +18,7 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    val finding = UnusedLetResult().lint(code).single()
+    val finding = UnusedLetResult().lintWithContext(environment, code).single()
 
     finding.message shouldBe "Result of \"let\" is not used: use an \"if\" check or \"also\" instead"
     finding.shouldStartAt(code, "let {")
@@ -43,7 +46,7 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code) shouldHaveSize 4
+    UnusedLetResult().lintWithContext(environment, code) shouldHaveSize 4
   }
 
   should("report let calls in branches of statements") {
@@ -72,7 +75,7 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code) shouldHaveSize 10
+    UnusedLetResult().lintWithContext(environment, code) shouldHaveSize 10
   }
 
   should("not report a let call whose result is used") {
@@ -98,7 +101,7 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code).shouldBeEmpty()
+    UnusedLetResult().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("report a let call that is not the last statement of a lambda") {
@@ -111,22 +114,39 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code).single().shouldStartAt(code, "let {")
+    UnusedLetResult().lintWithContext(environment, code).single().shouldStartAt(code, "let {")
   }
 
-  should("not report the last statement of a lambda") {
+  should("report the last statement of a lambda that returns Unit") {
     val code = """
-      fun show(errors: List<String?>) {
-        errors.forEach { error ->
-          error?.let { println(it) }
+      fun show(errors: List<String?>, error: String?) {
+        errors.forEach { item ->
+          item?.let { println(it) }
         }
-        errors.map { error ->
-          if (error != null) error.let { it.length } else 0
+        val action: () -> Unit = { error?.let { it.length } }
+        run {
+          if (error != null) error.let { println(it) }
         }
+        Thread { error?.let { println(it) } }
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code).shouldBeEmpty()
+    UnusedLetResult().lintWithContext(environment, code) shouldHaveSize 4
+  }
+
+  should("not report the last statement of a lambda that returns its value") {
+    val code = """
+      fun show(errors: List<String?>, error: String?) {
+        errors.map { item ->
+          if (item != null) item.let { it.length } else 0
+        }
+        val length = { error?.let { it.length } }
+        run { error?.let { println(it) } }
+        unknown { error?.let { println(it) } }
+      }
+    """.trimIndent()
+
+    UnusedLetResult().lintWithContext(environment, code).shouldBeEmpty()
   }
 
   should("not report let without a lambda, a let function of its own and other scope functions") {
@@ -140,6 +160,6 @@ class UnusedLetResultTest : ShouldSpec({
       }
     """.trimIndent()
 
-    UnusedLetResult().lint(code).shouldBeEmpty()
+    UnusedLetResult().lintWithContext(environment, code).shouldBeEmpty()
   }
 })
