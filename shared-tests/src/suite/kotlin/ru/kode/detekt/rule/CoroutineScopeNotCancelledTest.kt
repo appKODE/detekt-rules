@@ -149,6 +149,51 @@ class CoroutineScopeNotCancelledTest : ShouldSpec({
     finding.message shouldBe "CoroutineScope \"fourth\" is created in class \"Player\" but never cancelled"
   }
 
+  should("not report a scope cancelled through the parameter of a let or also block") {
+    val code = """
+      class Player {
+        private val first: CoroutineScope? = CoroutineScope(Dispatchers.Main)
+        private val second = CoroutineScope(Dispatchers.Main)
+        private val third = MainScope()
+        private val fourth = MainScope()
+
+        fun release(other: CoroutineScope?) {
+          first?.let { it.cancel() }
+          this.second.also { scope -> synchronized(this) { scope.cancel() } }
+          other?.let { it.cancel() }
+          third.let { scope -> it.cancel() }
+          fourth.run { it.cancel() }
+        }
+      }
+    """.trimIndent()
+
+    CoroutineScopeNotCancelled().lint(code).map { it.message } shouldBe listOf(
+      "CoroutineScope \"third\" is created in class \"Player\" but never cancelled",
+      "CoroutineScope \"fourth\" is created in class \"Player\" but never cancelled",
+    )
+  }
+
+  should("report a scope when a cancel call in its block cancels a coroutine of its own") {
+    val code = """
+      class Player {
+        private val first = CoroutineScope(Dispatchers.Main)
+        private val second = CoroutineScope(Dispatchers.Main)
+        private val third = CoroutineScope(Dispatchers.Main)
+
+        fun play() {
+          with(first) { launch { cancel() } }
+          second.run { async { listOf(1).forEach { cancel() } } }
+          third.apply { launch { }; listOf(1).forEach { cancel() } }
+        }
+      }
+    """.trimIndent()
+
+    CoroutineScopeNotCancelled().lint(code).map { it.message } shouldBe listOf(
+      "CoroutineScope \"first\" is created in class \"Player\" but never cancelled",
+      "CoroutineScope \"second\" is created in class \"Player\" but never cancelled",
+    )
+  }
+
   should("not report a scope built from a parent context or job") {
     val code = """
       class Player(parent: CoroutineScope, parentJob: Job) {
@@ -171,6 +216,39 @@ class CoroutineScopeNotCancelledTest : ShouldSpec({
     """.trimIndent()
 
     CoroutineScopeNotCancelled().lint(code) shouldHaveSize 2
+  }
+
+  should("report a scope whose parent job is a property of the class that is never cancelled") {
+    val code = """
+      class Player(parentJob: Job) {
+        private val job = Job()
+        private val root = SupervisorJob()
+        private val linked = Job(parentJob)
+        private val first = CoroutineScope(SupervisorJob(job))
+        private val second = CoroutineScope(Dispatchers.Main + Job(parent = this.root))
+        private val third = CoroutineScope(SupervisorJob(linked))
+
+        fun release() {
+          root.cancel()
+        }
+      }
+    """.trimIndent()
+
+    CoroutineScopeNotCancelled().lint(code).map { it.message } shouldBe listOf(
+      "CoroutineScope \"first\" is created in class \"Player\" but never cancelled",
+    )
+  }
+
+  should("report a scope that names a coroutineContext only in a lambda") {
+    val code = """
+      class Player {
+        private val scope = CoroutineScope(
+          CoroutineExceptionHandler { coroutineContext, error -> log(coroutineContext, error) },
+        )
+      }
+    """.trimIndent()
+
+    CoroutineScopeNotCancelled().lint(code).single()
   }
 
   should("leave a scope that subclasses can see to them") {
