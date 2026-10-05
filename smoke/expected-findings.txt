@@ -25,6 +25,7 @@ Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too ge
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:18:29 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Scopes.kt:8:3 CoroutineScopeNotCancelled CoroutineScope &quot;scope&quot; is created in class &quot;LeakingPlayer&quot; but never cancelled
+Scopes.kt:29:3 CoroutineScopeNotCancelled CoroutineScope &quot;hidden&quot; is created in class &quot;BasePlayer&quot; but never cancelled
 SealedTypes.kt:3:1 SealedClassCouldBeEnum Sealed type &quot;Direction&quot; has only object inheritors: use an enum class instead
 SealedTypes.kt:13:1 SealedClassCouldBeEnum Sealed type &quot;Axis&quot; has only object inheritors: use an enum class instead
 State.kt:7:1 ImmutableDataClass Data class &quot;ScreenState&quot; is missing @Immutable annotation
