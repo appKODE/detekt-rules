@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 - 2026-10-05
+## 2.1.0 - 2026-11-09
 
 Nine new rules. All of them are inactive by default: enable the ones you need in your detekt config.
 
