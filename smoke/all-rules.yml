@@ -22,3 +22,23 @@ kode:
     ignoreInClassesDerivedFrom: [ "ViewIntents" ]
     ignoreInInterfacesDerivedFrom: []
     ignorePropertiesOfType: [ "^Task\\d+<(?:[^<>]*|<[^<>]*>)*>$", "Result", "Unit", "ScreenTarget" ]
+  NullableValueClassProperty:
+    active: true
+  ConstantsNotAtBottom:
+    active: true
+  InconsistentWhenTypeCheck:
+    active: true
+  SealedClassCouldBeEnum:
+    active: true
+  UnusedLetResult:
+    active: true
+  CoroutineScopeNotCancelled:
+    active: true
+  CancellationExceptionNotRethrown:
+    active: true
+    rethrowFunctions: ['rethrowCancellation']
+  PublicSuspendFunctionInReactiveModel:
+    active: true
+    baseClasses: ['ReactiveModel']
+  UnhandledViewIntent:
+    active: true

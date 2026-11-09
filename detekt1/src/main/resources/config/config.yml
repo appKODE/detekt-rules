@@ -23,3 +23,23 @@ kode:
     ignoreInClassesDerivedFrom: []
     ignoreInInterfacesDerivedFrom: []
     ignorePropertiesOfType: []
+  NullableValueClassProperty:
+    active: false
+  ConstantsNotAtBottom:
+    active: false
+  InconsistentWhenTypeCheck:
+    active: false
+  SealedClassCouldBeEnum:
+    active: false
+  UnusedLetResult:
+    active: false
+  CoroutineScopeNotCancelled:
+    active: false
+  CancellationExceptionNotRethrown:
+    active: false
+    rethrowFunctions: []
+  PublicSuspendFunctionInReactiveModel:
+    active: false
+    baseClasses: ['ReactiveModel']
+  UnhandledViewIntent:
+    active: false

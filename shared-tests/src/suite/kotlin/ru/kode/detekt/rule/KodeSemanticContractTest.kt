@@ -3,11 +3,19 @@ package ru.kode.detekt.rule
 import dev.detekt.test.utils.createEnvironment
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldBeIn
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.string.shouldStartWith
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
+import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtConstantExpression
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelectorOrThis
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -194,6 +202,142 @@ class KodeSemanticContractTest : ShouldSpec({
       "m.hashCode()" to false,
     )
   }
+
+  fun <T> referenceAnswers(ask: KodeSemantic.(KtNameReferenceExpression) -> T): Map<String, T> =
+    withKodeSemantic(environment, REFERENCE_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallableReferenceExpression>().associate { reference ->
+        val name = when (val receiver = reference.receiverExpression) {
+          is KtQualifiedExpression -> receiver.selectorExpression
+          null -> reference.callableReference
+          else -> receiver
+        } as KtNameReferenceExpression
+        (reference.parent as KtProperty).name!! to semantic.ask(name)
+      }
+    }
+
+  should("resolve a name reference to the source class it refers to") {
+    referenceAnswers { referencedClass(it)?.name } shouldContainExactly mapOf(
+      "rClass" to "Intents",
+      "rNested" to "Nested",
+      "rQualified" to "Intents",
+      "rObject" to null,
+      "rNestedObject" to null,
+      "rEnumEntry" to null,
+      "rCompanion" to "WithCompanion",
+      "rCompanionObject" to null,
+      "rAlias" to null,
+      "rObjectAlias" to null,
+      "rCompanionAlias" to null,
+      "rProperty" to null,
+      "rInstance" to null,
+      "rLibrary" to null,
+      "rLibraryObject" to null,
+      "rUnresolved" to null,
+    )
+  }
+
+  should("tell a reference to an object declaration from any other reference") {
+    referenceAnswers { isObjectReference(it) }.filterValues { it }.keys shouldContainExactly
+      setOf("rObject", "rNestedObject", "rLibraryObject", "rObjectAlias")
+  }
+
+  should("tell a lambda that returns Unit from a lambda that returns a value") {
+    withKodeSemantic(environment, LAMBDA_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtProperty>().associate {
+        it.name!! to semantic.returnsUnit(it.collectDescendantsOfType<KtFunctionLiteral>().first())
+      }
+    } shouldContainExactly mapOf(
+      "lExpectedUnit" to true,
+      "lSuspendUnit" to true,
+      "lParameterUnit" to true,
+      "lJavaUnit" to true,
+      "lInferredUnit" to true,
+      "lEmpty" to true,
+      "lGenericUnit" to true,
+      "lInt" to false,
+      "lParameterValue" to false,
+      "lGenericValue" to false,
+      "lNullableUnit" to false,
+      "lUnresolvedUnit" to true,
+      "lUnresolvedValue" to false,
+    )
+  }
+
+  fun suspendCallAnswers(ask: KodeSemantic.(KtCallExpression) -> Boolean): Set<String> =
+    withKodeSemantic(environment, SUSPEND_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().filter { semantic.ask(it) }.mapTo(mutableSetOf()) { it.text }
+    }
+
+  should("tell a call of a suspend function, also through a value of a suspend function type") {
+    suspendCallAnswers { isSuspendCall(it) } shouldContainExactly setOf(
+      "pause()",
+      "action()",
+      "suspendInline { regular() }",
+      "member()",
+      "ext()",
+    )
+  }
+
+  should("tell a lambda or an anonymous function that an inline function runs in place") {
+    withKodeSemantic(environment, SUSPEND_FIXTURE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().flatMap { call ->
+        call.valueArguments
+          .filter { it.getArgumentExpression() !is KtConstantExpression && semantic.isInlinedArgument(call, it) }
+          .map { "${call.calleeExpression?.text}: ${it.text}" }
+      }
+    } shouldContainExactlyInAnyOrder listOf(
+      "inlined: { pause() }",
+      "suspendInline: { regular() }",
+      "repeat: { regular() }",
+      "mixed: { 1 }",
+      "mixed: first = lab@{ 5 }",
+      "mixed: (fun(): Int = 9)",
+    )
+  }
+
+  should("list the source superclasses of a class, of every file") {
+    withKodeSemantic(environment, HIERARCHY_FIXTURE, HIERARCHY_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtClass>().associate { klass ->
+        klass.name!! to semantic.sourceSuperClasses(klass).map { it.name }.sortedBy { it }
+      }
+    } shouldContainExactly mapOf(
+      "Leaf" to listOf("Marker", "Middle", "Root"),
+      "Middle" to listOf("Root"),
+      "Alone" to emptyList(),
+      "Broken" to emptyList(),
+    )
+  }
+
+  should("resolve a call to the source function it calls, of every file") {
+    withKodeSemantic(environment, HIERARCHY_FIXTURE, HIERARCHY_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtCallExpression>().associate { it.text to semantic.calledFunction(it)?.name }
+    } shouldContainExactly mapOf(
+      "own()" to "own",
+      "inherited()" to "inherited",
+      "extension()" to "extension",
+      "topLevel()" to "topLevel",
+      "listOf(1)" to null,
+      "Alone()" to null,
+      "callback()" to null,
+      "missing()" to null,
+    )
+  }
+
+  should("list the direct inheritors of a sealed class, of every file") {
+    withKodeSemantic(environment, SEALED_FIXTURE, SEALED_FIXTURE_OTHER_FILE) { semantic, file ->
+      file.collectDescendantsOfType<KtClass>().associate { klass ->
+        klass.name!! to semantic.sealedInheritors(klass).map { it.name }.sortedBy { it }
+      }
+    } shouldContainExactly mapOf(
+      "Shape" to listOf("Circle", "Dot", "Polygon", "Square"),
+      "Polygon" to listOf("Companion", "Triangle"),
+      "Triangle" to emptyList(),
+      "Lonely" to emptyList(),
+      "Open" to emptyList(),
+      "Level" to emptyList(),
+      "Low" to emptyList(),
+    )
+  }
 })
 
 private val UNRESOLVED = setOf("pUnresolved", "pUnresolvedType", "pFunUnresolved")
@@ -360,4 +504,178 @@ private val CALL_FIXTURE =
       m.plain()
       m.hashCode()
     }
+  """.trimIndent()
+
+// language=kotlin
+private val REFERENCE_FIXTURE =
+  """
+    package references
+
+    class Intents {
+      val onClick = 1
+      class Nested { val onOpen = 2 }
+    }
+    object Holder { val value = 3 }
+    enum class Mode { On }
+    class WithCompanion {
+      val onTap = 5
+      companion object { val shared = 6 }
+      object Inside
+    }
+    typealias Alias = Intents
+    typealias ObjectAlias = Holder
+    typealias CompanionAlias = WithCompanion.Companion
+    val top = 4
+    val instance = Intents()
+
+    val rClass = Intents::onClick
+    val rNested = Intents.Nested::onOpen
+    val rQualified = references.Intents::onClick
+    val rObject = Holder::value
+    val rEnumEntry = Mode.On::name
+    val rCompanion = WithCompanion::onTap
+    val rCompanionObject = WithCompanion.Companion::shared
+    val rAlias = Alias::onClick
+    val rObjectAlias = ObjectAlias::value
+    val rCompanionAlias = CompanionAlias::shared
+    val rProperty = ::top
+    val rInstance = instance::onClick
+    val rNestedObject = WithCompanion.Inside::hashCode
+    val rLibrary = String::length
+    val rLibraryObject = Unit::toString
+    val rUnresolved = Missing::value
+  """.trimIndent()
+
+// language=kotlin
+private val LAMBDA_FIXTURE =
+  """
+    package lambdas
+
+    val lExpectedUnit: () -> Unit = { 1 }
+    val lSuspendUnit: suspend () -> Unit = { 1 }
+    val lParameterUnit = listOf(1).forEach { it.toString() }
+    val lJavaUnit = Thread { 1 }
+    val lInferredUnit = { println() }
+    val lEmpty = {}
+    val lGenericUnit = run { println() }
+    val lInt = { 1 }
+    val lParameterValue = listOf(1).map { it.toString() }
+    val lGenericValue = run { 1 }
+    val lNullableUnit = run { null as Unit? }
+    val lUnresolvedUnit = unknown { println() }
+    val lUnresolvedValue = unknown { 1 }
+  """.trimIndent()
+
+// language=kotlin
+private val SEALED_FIXTURE =
+  """
+    package sealed
+
+    sealed interface Shape {
+      object Circle : Shape
+    }
+    sealed class Polygon : Shape {
+      class Triangle : Polygon()
+      companion object : Polygon()
+    }
+    sealed interface Lonely
+    open class Open
+    object Child : Open()
+    enum class Level { Low }
+  """.trimIndent()
+
+// language=kotlin
+private val SEALED_FIXTURE_OTHER_FILE =
+  """
+    package sealed
+
+    class Square(val side: Int) : Shape
+    object Dot : Shape
+  """.trimIndent()
+
+// language=kotlin
+private val SUSPEND_FIXTURE =
+  """
+    package suspending
+
+    import kotlin.coroutines.RestrictsSuspension
+
+    suspend fun pause() {}
+    fun regular() {}
+    inline fun inlined(block: () -> Unit) = block()
+    inline fun mixed(first: () -> Int, noinline second: () -> Int, crossinline third: () -> Int, count: Int): Int =
+      first() + second() + count
+    suspend inline fun suspendInline(block: () -> Unit) = block()
+    fun later(block: suspend () -> Unit) {}
+    class Worker {
+      suspend fun member() {}
+      suspend fun run() { member() }
+    }
+    suspend fun Worker.ext() {}
+    @RestrictsSuspension
+    open class Restricted {
+      suspend fun step() {}
+    }
+    class Generator : Restricted()
+    suspend fun Restricted.extended() {}
+    suspend fun Generator.generate() {
+      step()
+      extended()
+    }
+    fun numbers() = sequence { yield(1) }
+
+    suspend fun probe(action: suspend () -> Unit, callback: () -> Unit, worker: Worker) {
+      pause()
+      regular()
+      action()
+      callback()
+      inlined { pause() }
+      suspendInline { regular() }
+      later { regular() }
+      repeat(2) { regular() }
+      worker.ext()
+      Worker()
+      unknown()
+      mixed({ 1 }, { 2 }, { 3 }, 4)
+      mixed(first = lab@{ 5 }, second = lab@{ 6 }, third = ({ 7 }), count = 8)
+      mixed((fun(): Int = 9), fun(): Int = 10, fun(): Int = 11, 12)
+      unknown { 13 }
+    }
+  """.trimIndent()
+
+// language=kotlin
+private val HIERARCHY_FIXTURE =
+  """
+    package hierarchy
+
+    open class Middle : Root()
+    class Leaf : Middle(), Marker, Comparable<Leaf> {
+      override fun compareTo(other: Leaf): Int = 0
+      fun own() {}
+      fun probe(callback: () -> Unit) {
+        own()
+        inherited()
+        extension()
+        topLevel()
+        listOf(1)
+        Alone()
+        callback()
+        missing()
+      }
+    }
+    class Alone
+    class Broken : Missing()
+  """.trimIndent()
+
+// language=kotlin
+private val HIERARCHY_FIXTURE_OTHER_FILE =
+  """
+    package hierarchy
+
+    open class Root {
+      fun inherited() {}
+    }
+    interface Marker
+    fun Leaf.extension() {}
+    fun topLevel() {}
   """.trimIndent()

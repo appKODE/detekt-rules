@@ -1,6 +1,10 @@
+Cancellation.kt:10:5 CancellationExceptionNotRethrown Catching &quot;Exception&quot; around a suspending call swallows CancellationException: rethrow it or call &quot;ensureActive()&quot;
+Cancellation.kt:34:7 CancellationExceptionNotRethrown Catching &quot;Throwable&quot; around a suspending call swallows CancellationException: rethrow it or call &quot;ensureActive()&quot;
 ComponentCalls.kt:7:17 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
 ComponentCalls.kt:11:18 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
 ComponentCalls.kt:11:51 ComponentFunctionCall Instead of calling &quot;componentN&quot; functions, use property access or any other means available
+Constants.kt:3:1 ConstantsNotAtBottom Constant &quot;PAGE_SIZE&quot; should be declared at the bottom of the file
+Constants.kt:6:3 ConstantsNotAtBottom Companion object with constants should be the last declaration of class &quot;Pager&quot;
 Database.kt:9:8 BlockingSqlDelightCall Database queries/transactions should be wrapped in &quot;withContext(Dispatchers.IO)&quot; to prevent blocking
 Database.kt:25:30 BlockingSqlDelightCall Database queries/transactions should be wrapped in &quot;withContext(Dispatchers.IO)&quot; to prevent blocking
 ExplicitTypes.kt:10:3 MissingTypeDeclaration Missing explicit type declaration for public value &apos;count: Int&apos;
@@ -12,12 +16,23 @@ Flows.kt:13:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Flows.kt:15:13 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Flows.kt:15:49 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
 Flows.kt:15:71 UseOnStartEmit Use Flow.onStartEmit() instead of Flow.onStart()
+Intents.kt:20:5 UnhandledViewIntent View intents are never handled in the machine of &quot;ScreenViewModel&quot;: ScreenIntents.onBack
+Intents.kt:39:5 UnhandledViewIntent View intents are never handled in the machine of &quot;DetailsViewModel&quot;: DetailsIntents.onClose
+LetCalls.kt:4:9 UnusedLetResult Result of &quot;let&quot; is not used: use an &quot;if&quot; check or &quot;also&quot; instead
+LetCalls.kt:11:11 UnusedLetResult Result of &quot;let&quot; is not used: use an &quot;if&quot; check or &quot;also&quot; instead
+Models.kt:6:3 PublicSuspendFunctionInReactiveModel Reactive model &quot;AccountModel&quot; should not expose public suspend function &quot;load&quot;: make it a task or make it private
 Payload.kt:9:27 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:10:31 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
 Payload.kt:18:29 PayloadArgumentName Parameter name &quot;payload&quot; is too generic, use more specific name instead
+Scopes.kt:8:3 CoroutineScopeNotCancelled CoroutineScope &quot;scope&quot; is created in class &quot;LeakingPlayer&quot; but never cancelled
+Scopes.kt:29:3 CoroutineScopeNotCancelled CoroutineScope &quot;hidden&quot; is created in class &quot;BasePlayer&quot; but never cancelled
+SealedTypes.kt:3:1 SealedClassCouldBeEnum Sealed type &quot;Direction&quot; has only object inheritors: use an enum class instead
+SealedTypes.kt:13:1 SealedClassCouldBeEnum Sealed type &quot;Axis&quot; has only object inheritors: use an enum class instead
 State.kt:7:1 ImmutableDataClass Data class &quot;ScreenState&quot; is missing @Immutable annotation
 Surface.kt:16:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 Surface.kt:17:3 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 Surface.kt:24:19 UseSurfaceModifier Use &quot;Modifier.surface()&quot; instead of combining shaped background with clickable/clip/shadow
 UserWiring.kt:8:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class
 UserWiring.kt:18:3 RouteWiringMethodNaming Use &quot;navigateOn&quot; prefix for routing-related function names inside a Wiring class
+ValueClasses.kt:4:20 NullableValueClassProperty Value class &quot;UserId&quot; wraps a nullable type: make the property non-null and use &quot;UserId?&quot;
+WhenChecks.kt:11:3 InconsistentWhenTypeCheck Use &quot;is LoadState.Loading&quot; like the other branches of this &quot;when&quot; do

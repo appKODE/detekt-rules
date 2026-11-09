@@ -10,10 +10,14 @@ import io.gitlab.arturbosch.detekt.test.lintWithContext
 import org.jetbrains.kotlin.psi.KtFile
 import ru.kode.detekt.rule.shared.KodeSemantic
 
-/** Runs [block] with this engine's [KodeSemantic], bound to a type-resolved [code] file. */
+/**
+ * Runs [block] with this engine's [KodeSemantic], bound to a type-resolved [code] file. [dependencyCodes] are other
+ * files of the same sources.
+ */
 fun <T> withKodeSemantic(
   environment: KotlinEnvironmentContainer,
   code: String,
+  vararg dependencyCodes: String,
   block: (KodeSemantic, KtFile) -> T,
 ): T {
   val results = mutableListOf<T>()
@@ -24,6 +28,6 @@ fun <T> withKodeSemantic(
       results += block(BindingContextKodeSemantic(bindingContext), file)
     }
   }
-  probe.lintWithContext(environment.env, code)
+  probe.lintWithContext(environment.env, code, *dependencyCodes)
   return results.single()
 }

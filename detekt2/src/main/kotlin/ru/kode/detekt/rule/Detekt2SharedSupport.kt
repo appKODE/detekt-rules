@@ -10,6 +10,10 @@ import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
+import org.jetbrains.kotlin.analysis.api.symbols.KaTypeAliasSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
 import org.jetbrains.kotlin.analysis.api.types.KaErrorType
@@ -21,9 +25,17 @@ import org.jetbrains.kotlin.analysis.api.types.KaTypeArgumentWithVariance
 import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.api.types.KaTypeProjection
 import org.jetbrains.kotlin.analysis.api.types.symbol
+import org.jetbrains.kotlin.idea.references.mainReference
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtPsiUtil
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.types.Variance
 import ru.kode.detekt.rule.shared.KodeDiagnostic
 import ru.kode.detekt.rule.shared.KodeSemantic
@@ -57,6 +69,74 @@ internal object AnalysisApiKodeSemantic : KodeSemantic {
   override fun renderedType(declaration: KtCallableDeclaration): String? = analyze(declaration) {
     render(declaration.returnType)
   }
+
+  override fun referencedClass(reference: KtNameReferenceExpression): KtClass? = analyze(reference) {
+    // a library class can have a decompiled PSI: detekt1 has none for it
+    ((reference.mainReference.resolveToSymbol() as? KaClassSymbol)?.psi as? KtClass)
+      ?.takeUnless { it.containingKtFile.isCompiled }
+  }
+
+  override fun sourceSuperClasses(klass: KtClass): List<KtClass> = analyze(klass) {
+    klass.classSymbol?.defaultType?.allSupertypes.orEmpty()
+      .mapNotNull { it.symbol?.psi as? KtClass }
+      .filterNot { it.containingKtFile.isCompiled }
+      .toList()
+  }
+
+  override fun calledFunction(call: KtCallExpression): KtNamedFunction? = analyze(call) {
+    (function(call)?.psi as? KtNamedFunction)?.takeUnless { it.containingKtFile.isCompiled }
+  }
+
+  override fun isObjectReference(reference: KtNameReferenceExpression): Boolean = analyze(reference) {
+    val target = when (val symbol = reference.mainReference.resolveToSymbol()) {
+      is KaTypeAliasSymbol -> symbol.expandedType.expandedSymbol
+      else -> symbol as? KaClassSymbol
+    }
+    target?.classKind == KaClassKind.OBJECT
+  }
+
+  override fun returnsUnit(literal: KtFunctionLiteral): Boolean = analyze(literal) {
+    // `isUnitType` holds for `Unit?` too
+    literal.symbol.returnType.let { it.isUnitType && !it.isMarkedNullable }
+  }
+
+  override fun sealedInheritors(klass: KtClass): List<KtClassOrObject> = analyze(klass) {
+    (klass.classSymbol as? KaNamedClassSymbol)
+      // `sealedClassInheritors` fails on a class that is not sealed
+      ?.takeIf { it.modality == KaSymbolModality.SEALED }
+      ?.sealedClassInheritors
+      .orEmpty()
+      .mapNotNull { it.psi as? KtClassOrObject }
+  }
+
+  override fun isSuspendCall(call: KtCallExpression): Boolean = analyze(call) {
+    val function = function(call)?.takeIf { it.isSuspend } ?: return@analyze false
+    val receivers = listOfNotNull(
+      function.containingDeclaration as? KaClassSymbol,
+      function.receiverParameter?.returnType?.symbol as? KaClassSymbol,
+    )
+    receivers.none { receiver ->
+      (receiver.defaultType.allSupertypes.mapNotNull { it.symbol } + receiver)
+        .any { restrictsSuspension in it.annotations }
+    }
+  }
+
+  override fun isInlinedArgument(call: KtCallExpression, argument: KtValueArgument): Boolean = analyze(call) {
+    val resolved = call.resolveToCall()?.singleFunctionCallOrNull() ?: return@analyze false
+    val expression = KtPsiUtil.deparenthesize(argument.getArgumentExpression())
+    // a label or parentheses can wrap the argument, on either side of the mapping
+    val parameter = resolved.argumentMapping.entries
+      .firstOrNull { KtPsiUtil.deparenthesize(it.key) == expression }
+      ?.value
+      ?.symbol
+      ?: return@analyze false
+    (resolved.symbol as? KaNamedFunctionSymbol)?.isInline == true && !parameter.isNoinline && !parameter.isCrossinline
+  }
+
+  private fun KaSession.function(call: KtCallExpression): KaNamedFunctionSymbol? =
+    call.resolveToCall()?.singleFunctionCallOrNull()?.symbol as? KaNamedFunctionSymbol
+
+  private val restrictsSuspension = ClassId.fromString("kotlin/coroutines/RestrictsSuspension")
 }
 
 /** Renders [type] like detekt1's (K1) `KotlinType.toString()`. */

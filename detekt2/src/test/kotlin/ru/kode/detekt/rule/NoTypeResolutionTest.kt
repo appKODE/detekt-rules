@@ -25,4 +25,52 @@ class NoTypeResolutionTest : ShouldSpec({
 
     error.message shouldContain "requires Analysis API"
   }
+
+  should("refuse to lint without Analysis API: PublicSuspendFunctionInReactiveModel") {
+    val error = shouldThrow<IllegalArgumentException> {
+      PublicSuspendFunctionInReactiveModel().lint("class Model")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
+
+  should("refuse to lint without Analysis API: UnhandledViewIntent") {
+    val error = shouldThrow<IllegalArgumentException> {
+      UnhandledViewIntent().lint("class ViewModel")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
+
+  should("refuse to lint without Analysis API: InconsistentWhenTypeCheck") {
+    val error = shouldThrow<IllegalArgumentException> {
+      InconsistentWhenTypeCheck().lint("fun render() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
+
+  should("refuse to lint without Analysis API: UnusedLetResult") {
+    val error = shouldThrow<IllegalArgumentException> {
+      UnusedLetResult().lint("fun show() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
+
+  should("refuse to lint without Analysis API: SealedClassCouldBeEnum") {
+    val error = shouldThrow<IllegalArgumentException> {
+      SealedClassCouldBeEnum().lint("sealed interface Direction")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
+
+  should("refuse to lint without Analysis API: CancellationExceptionNotRethrown") {
+    val error = shouldThrow<IllegalArgumentException> {
+      CancellationExceptionNotRethrown().lint("suspend fun load() {}")
+    }
+
+    error.message shouldContain "requires Analysis API"
+  }
 })

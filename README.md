@@ -11,10 +11,10 @@ Pick the artifact that matches your detekt version:
 ```kotlin
 dependencies {
   // detekt 1.22.0 - 1.23.8
-  detektPlugins("ru.kode:detekt-rules:2.0.0")
+  detektPlugins("ru.kode:detekt-rules:2.1.0")
 
   // detekt 2.0.0-alpha.6
-  detektPlugins("ru.kode:detekt-rules-detekt2:2.0.0")
+  detektPlugins("ru.kode:detekt-rules-detekt2:2.1.0")
 }
 ```
 
@@ -51,6 +51,26 @@ kode:
     ignoreInClassesDerivedFrom: []
     ignoreInInterfacesDerivedFrom: []
     ignorePropertiesOfType: []
+  NullableValueClassProperty:
+    active: false
+  ConstantsNotAtBottom:
+    active: false
+  InconsistentWhenTypeCheck:
+    active: false
+  SealedClassCouldBeEnum:
+    active: false
+  UnusedLetResult:
+    active: false
+  CoroutineScopeNotCancelled:
+    active: false
+  CancellationExceptionNotRethrown:
+    active: false
+    rethrowFunctions: []
+  PublicSuspendFunctionInReactiveModel:
+    active: false
+    baseClasses: ['ReactiveModel']
+  UnhandledViewIntent:
+    active: false
 ```
 
 # Rules
@@ -66,10 +86,24 @@ kode:
 | `BlockingSqlDelightCall` | active | A call of a SqlDelight `Transacter` member (the database or its queries) in a `suspend` function outside `withContext(...)` | `sqlDelightPackage` (`app.cash.sqldelight`): package of `Transacter` |
 | `ImmutableDataClass` | active | A data class in a `ui` package (any package segment) without `@Immutable` | `ignoreDescendantsOf` (`[]`): skip data classes whose direct supertype has one of these short or fully qualified names |
 | `MissingTypeDeclaration` | active | A public property without an explicit type, or a public non-`Unit` function without an explicit return type, in a class body | `ignoreInClassesDerivedFrom` (`[]`): skip classes with one of these (transitive) supertypes, by simple name; `ignoreInInterfacesDerivedFrom` (`[]`): skip classes that directly implement one of these interfaces, by simple name; `ignorePropertiesOfType` (`[]`): skip properties whose type matches one of these regular expressions |
+| `NullableValueClassProperty` | inactive | A `value class` whose property has a nullable type; make it non-null and use a nullable value class instead | — |
+| `ConstantsNotAtBottom` | inactive | A top-level `const val` followed by anything but properties, or a companion object with `const val`s that is not the last member of its class; one finding per file and per class | — |
+| `InconsistentWhenTypeCheck` | inactive | In a `when (subject)` that has `is` branches, a branch comparing the subject to an object by equality (`State.Loading ->`): a plain or qualified name, also in parentheses, that resolves to an `object` declaration or to a type alias of one. Constants, enum entries and companion objects are not reported. Needs type resolution | — |
+| `SealedClassCouldBeEnum` | inactive | A sealed class or interface without type parameters and without a superclass whose inheritors (at least two, in whatever file they are declared) are all objects with no state of their own. Needs type resolution | — |
+| `UnusedLetResult` | inactive | A `let { }` call in statement position, where its result is discarded (also inside `if` / `when` / `try` branches and loop bodies of a statement, and as the last statement of a lambda that returns `Unit`, like `forEach { it?.let { } }`). Needs type resolution | — |
+| `CoroutineScopeNotCancelled` | inactive | A class property initialized with `CoroutineScope(...)` or `MainScope()` when the class itself (not a nested class) has no `cancel` call on it (`scope.cancel()`, `scope.coroutineContext[Job]?.cancel()`, or `job.cancel()` for `CoroutineScope(job)`). A `cancel()` made in `with(scope) { }`, `scope.run { }` or `scope.apply { }` counts, and so does `scope?.let { it.cancel() }` or `also`; cancelling the result of a call (`scope.launch { }.cancel()`) or the coroutine of a builder (`with(scope) { launch { cancel() } }`) does not. Not reported: a scope built from a parent, which is cancelled with it (`CoroutineScope(parent.coroutineContext)` without a `Job()` of its own, `Job(parentJob)`, `SupervisorJob(parentJob)`, unless the parent job is a property of the class itself that it never cancels), a non-private scope of an `open`, `abstract` or `sealed` class, which a subclass may cancel, and objects: they live as long as the process. Everything is matched by name within one class | — |
+| `CancellationExceptionNotRethrown` | inactive | A `catch` of `CancellationException`, `Throwable`, `Exception`, `RuntimeException` or `IllegalStateException` that neither rethrows the caught exception nor calls `ensureActive()`, unless an earlier `catch (e: CancellationException)` rethrows, when its `try` block calls a `suspend` function: directly or in a lambda or an anonymous function that an inline function runs in place (`forEach { }`; not one passed to a `noinline` or `crossinline` parameter, like the lambda of `Flow.map`), in a `suspend` function as well as in a suspend lambda (`scope.launch { try { } catch ... }`). Functions of a `@RestrictsSuspension` class do not count (`yield` in `sequence { }`). A `try` that suspends only through an operator, an infix call, a `for` loop or a delegated property is not reported, and the caught types and the rethrow are matched by name. Needs type resolution. detekt 2 ships a similar check, `SuspendFunSwallowedCancellation`; in detekt 1 that rule covers `runCatching` only | `rethrowFunctions` (`[]`): names of functions whose call in the `catch` counts as a rethrow |
+| `PublicSuspendFunctionInReactiveModel` | inactive | A public, non-`override` `suspend` function declared in a class derived (directly or not) from one of `baseClasses`. Needs type resolution | `baseClasses` (`['ReactiveModel']`): simple names of the reactive model base classes |
+| `UnhandledViewIntent` | inactive | A class that calls `machine` and refers to intents as `Intents::onRefresh`, when some property initialized with `intent(...)` of that intents class or of its superclasses is never referred to. A reference counts in the class itself, in its superclasses and in the functions they call, of any file; the intents classes to check are those the class itself and its superclasses refer to. One finding per class, put on the `machine` name and listing the unhandled intents as `Intents.onBack`. Needs type resolution | — |
+
+More detailed rule descriptions with code snippets can be found in the [Wiki](https://github.com/appKODE/detekt-rules/wiki).
 
 # Type resolution
 
-`BlockingSqlDelightCall` and `MissingTypeDeclaration` need type information; the other rules work on syntax only.
+`BlockingSqlDelightCall`, `MissingTypeDeclaration`, `InconsistentWhenTypeCheck`, `SealedClassCouldBeEnum`,
+`UnusedLetResult`, `CancellationExceptionNotRethrown`, `PublicSuspendFunctionInReactiveModel` and
+`UnhandledViewIntent`
+need type information; the other rules work on syntax only.
 
 - detekt 1: they only report in the [type resolution](https://detekt.dev/docs/gettingstarted/type-resolution)
   tasks (`detektMain`, `detektTest`, or `detekt-cli --classpath ...`). In a plain `detekt` task they report nothing.

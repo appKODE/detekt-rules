@@ -11,5 +11,14 @@ object SharedRuleContracts {
     "BlockingSqlDelightCall",
     "ImmutableDataClass",
     "MissingTypeDeclaration",
+    "NullableValueClassProperty",
+    "ConstantsNotAtBottom",
+    "InconsistentWhenTypeCheck",
+    "SealedClassCouldBeEnum",
+    "UnusedLetResult",
+    "CoroutineScopeNotCancelled",
+    "CancellationExceptionNotRethrown",
+    "PublicSuspendFunctionInReactiveModel",
+    "UnhandledViewIntent",
   )
 }

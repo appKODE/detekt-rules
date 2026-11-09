@@ -20,6 +20,15 @@ class KodeRuleSetProvider : RuleSetProvider {
         { config -> BlockingSqlDelightCall(config) },
         { config -> ImmutableDataClass(config) },
         { config -> MissingTypeDeclaration(config) },
+        { config -> NullableValueClassProperty(config) },
+        { config -> ConstantsNotAtBottom(config) },
+        { config -> InconsistentWhenTypeCheck(config) },
+        { config -> SealedClassCouldBeEnum(config) },
+        { config -> UnusedLetResult(config) },
+        { config -> CoroutineScopeNotCancelled(config) },
+        { config -> CancellationExceptionNotRethrown(config) },
+        { config -> PublicSuspendFunctionInReactiveModel(config) },
+        { config -> UnhandledViewIntent(config) },
       ),
     )
   }

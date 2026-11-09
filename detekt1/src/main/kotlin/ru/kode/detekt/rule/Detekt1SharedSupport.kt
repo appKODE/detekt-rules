@@ -7,14 +7,26 @@ import io.gitlab.arturbosch.detekt.api.Entity
 import io.gitlab.arturbosch.detekt.api.Issue
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.Severity
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.descriptors.TypeAliasDescriptor
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.KtEnumEntry
+import org.jetbrains.kotlin.psi.KtFunctionLiteral
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils
+import org.jetbrains.kotlin.resolve.calls.model.ArgumentMatch
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
@@ -72,5 +84,63 @@ internal class BindingContextKodeSemantic(
       function.original.overriddenTreeUniqueAsSequence(useOriginal = true)
         .filter { it.overriddenDescriptors.isEmpty() }
         .none { it.containingDeclaration.fqNameSafe.asString() == "kotlin.Any" }
+  }
+
+  override fun referencedClass(reference: KtNameReferenceExpression): KtClass? =
+    (bindingContext[BindingContext.REFERENCE_TARGET, reference] as? ClassDescriptor)
+      ?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
+      ?.takeUnless { it is KtEnumEntry }
+
+  override fun sourceSuperClasses(klass: KtClass): List<KtClass> = bindingContext[BindingContext.CLASS, klass]
+    ?.getAllSuperClassifiers()
+    .orEmpty()
+    .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClass }
+    .filter { it != klass }
+    .toList()
+
+  override fun calledFunction(call: KtCallExpression): KtNamedFunction? =
+    call.function()?.let { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtNamedFunction }
+
+  override fun isObjectReference(reference: KtNameReferenceExpression): Boolean =
+    when (val target = bindingContext[BindingContext.REFERENCE_TARGET, reference]) {
+      is TypeAliasDescriptor -> target.classDescriptor
+      else -> target as? ClassDescriptor
+    }
+      // the name of a class used as a value refers to its companion object
+      ?.takeUnless { it.isCompanionObject }
+      ?.kind == ClassKind.OBJECT
+
+  override fun returnsUnit(literal: KtFunctionLiteral): Boolean =
+    bindingContext[BindingContext.FUNCTION, literal]?.returnType?.let(KotlinBuiltIns::isUnit) == true
+
+  override fun sealedInheritors(klass: KtClass): List<KtClassOrObject> = bindingContext[BindingContext.CLASS, klass]
+    ?.sealedSubclasses
+    .orEmpty()
+    .mapNotNull { DescriptorToSourceUtils.descriptorToDeclaration(it) as? KtClassOrObject }
+
+  override fun isSuspendCall(call: KtCallExpression): Boolean {
+    val function = call.function()?.takeIf { it.isSuspend } ?: return false
+    val receivers = listOfNotNull(
+      function.containingDeclaration as? ClassDescriptor,
+      function.extensionReceiverParameter?.type?.constructor?.declarationDescriptor as? ClassDescriptor,
+    )
+    return receivers.none { receiver ->
+      receiver.getAllSuperClassifiers().any { it.annotations.hasAnnotation(restrictsSuspension) }
+    }
+  }
+
+  override fun isInlinedArgument(call: KtCallExpression, argument: KtValueArgument): Boolean {
+    val resolved = call.getResolvedCall(bindingContext) ?: return false
+    val parameter = (resolved.getArgumentMapping(argument) as? ArgumentMatch)?.valueParameter ?: return false
+    return (resolved.resultingDescriptor as? FunctionDescriptor)?.isInline == true &&
+      !parameter.isNoinline &&
+      !parameter.isCrossinline
+  }
+
+  private fun KtCallExpression.function(): FunctionDescriptor? =
+    getResolvedCall(bindingContext)?.resultingDescriptor as? FunctionDescriptor
+
+  private companion object {
+    val restrictsSuspension = FqName("kotlin.coroutines.RestrictsSuspension")
   }
 }
